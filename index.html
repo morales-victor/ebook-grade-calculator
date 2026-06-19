@@ -289,18 +289,18 @@ function agruparUnidades(partes) {
 }
 
 // Convertir nombre Oxford (Nombres Apellidos) al formato portal (Apellidos Nombres)
-// Las partículas (del, de la, etc.) se mantienen unidas a la palabra que las sigue
-// para no romper nombres compuestos como "del Carmen" o apellidos como "de la Fuente".
+// Regla: con 3 unidades o menos → última unidad = apellido
+//        con 4 unidades o más   → últimas 2 unidades = apellidos
 function oxfordAPortal(nombre) {
   const partes   = normNombre(nombre).split(' ');
-  if (partes.length <= 2) return partes.join(' ');
-
+  if (partes.length <= 1) return partes.join(' ');
   const unidades = agruparUnidades(partes);
-  if (unidades.length <= 2) return unidades.join(' ');
+  if (unidades.length <= 1) return unidades[0];
 
-  // Mover la primera mitad de las UNIDADES al final
-  const mitad = Math.floor(unidades.length / 2);
-  return [...unidades.slice(mitad), ...unidades.slice(0, mitad)].join(' ');
+  const numApellidos = unidades.length <= 3 ? 1 : 2;
+  const apellidos = unidades.slice(-numApellidos);
+  const nombres   = unidades.slice(0, unidades.length - numApellidos);
+  return [...apellidos, ...nombres].join(' ');
 }
 
 // Clave de comparación: palabras ordenadas alfabéticamente
@@ -679,7 +679,7 @@ function renderResultados(cursos) {
     <div class="aviso-icon">✎</div>
     <div class="aviso-body">
       <div class="aviso-title">Los nombres se ordenan automáticamente como en el portal de calificaciones</div>
-      <div class="aviso-text">La conversión de "Nombre Apellido" (Oxford) a "Apellido Nombre" (portal de calificaciones) es automática y funciona en la mayoría de los casos. Sin embargo, con nombres compuestos, apellidos de origen extranjero, o partículas como "del", "de la", etc., puede no quedar exactamente igual al portal. <strong>Haz clic sobre cualquier nombre para corregirlo</strong>: al guardar, la fila se reordenará automáticamente.</div>
+      <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre. <strong>Haz clic sobre cualquier nombre para corregirlo</strong> y la fila se reordenará sola.</div>
     </div>
   </div>`;
 
