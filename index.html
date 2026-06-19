@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora E-book · Duoc UC</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:#1B2A4A; --blue:#2C5282; --sky:#3B82F6; --ice:#EBF4FF;
+    --green:#16A34A; --red:#DC2626; --amber:#D97706;
+    --amber-bg:#FFFBEB; --red-bg:#FEF2F2;
+    --g50:#F9FAFB; --g100:#F3F4F6; --g200:#E5E7EB;
+    --g400:#9CA3AF; --g600:#4B5563; --g900:#111827;
+    --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif;
+    --r:8px; --sh:0 1px 3px rgba(0,0,0,.08);
+  }
+  body { font-family:var(--sans); background:var(--g50); color:var(--g900); min-height:100vh; }
+  header { background:var(--navy); padding:20px 32px; display:flex; align-items:center; gap:16px; border-bottom:3px solid var(--sky); }
+  .hico { width:40px;height:40px;background:var(--sky);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+  header h1 { font-size:17px;font-weight:600;color:#fff; }
+  header p  { font-size:12px;color:#94A3B8;margin-top:2px; }
+  .wrap { max-width:980px;margin:0 auto;padding:32px 24px; }
+  .step { font-size:11px;font-weight:600;color:var(--sky);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px; }
+  .drop { border:2px dashed var(--g200);border-radius:var(--r);background:#fff;padding:40px 24px;text-align:center;cursor:pointer;transition:.2s;position:relative; }
+  .drop:hover,.drop.over { border-color:var(--sky);background:var(--ice); }
+  .drop input { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+  .drop-ico { font-size:36px;margin-bottom:12px; }
+  .drop h2 { font-size:15px;font-weight:500; }
+  .drop p  { font-size:13px;color:var(--g400);margin-top:4px; }
+  .drop .btn-br { display:inline-block;margin-top:14px;background:var(--sky);color:#fff;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:500;pointer-events:none; }
+  .flist { display:flex;flex-direction:column;gap:8px;margin-top:16px; }
+  .pair-group { display:flex;flex-direction:column; }
+  .fchip { display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:10px 14px;font-size:13px;box-shadow:var(--sh); }
+  .fchip.paired {
+    border-left:4px solid var(--pair-color, var(--g200));
+  }
+  .fchip.paired.pair-top {
+    border-radius:0 var(--r) 0 0;
+    border-bottom:none;
+  }
+  .fchip.paired.pair-bottom {
+    border-radius:0 0 var(--r) 0;
+    border-top:1px solid var(--g100);
+    box-shadow:none;
+  }
+  .fchip.cat-basico     { --pair-color:#378ADD; }
+  .fchip.cat-elemental  { --pair-color:#639922; }
+  .fchip.cat-intermedio { --pair-color:#BA7517; }
+  .fchip.cat-int-alto   { --pair-color:#D4537E; }
+  .fchip.cat-pre-av     { --pair-color:#1D9E75; }
+  .fchip .ico { font-size:18px; }
+  .fchip .nm  { flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .fchip .nm-book { font-weight:400;font-size:11px;color:var(--g400);margin-left:8px; }
+  .badge { font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--ice);color:var(--blue);white-space:nowrap;flex-shrink:0; }
+  .badge.int { background:#EDE9FE;color:#5B21B6; }
+  .badge.unk { background:var(--amber-bg);color:var(--amber); }
+  /* Colores por nivel/categoría */
+  .badge.cat-basico     { background:#E6F1FB; color:#0C447C; }
+  .badge.cat-elemental  { background:#EAF3DE; color:#27500A; }
+  .badge.cat-intermedio { background:#FAEEDA; color:#633806; }
+  .badge.cat-int-alto   { background:#FBEAF0; color:#72243E; }
+  .badge.cat-pre-av     { background:#E1F5EE; color:#085041; }
+  .chip-rm { background:none;border:none;cursor:pointer;color:var(--g400);font-size:18px;line-height:1;padding:0 2px;flex-shrink:0; }
+  .chip-rm:hover { color:var(--red); }
+  .pnote { background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#5B21B6;margin-top:4px;display:flex;gap:8px;align-items:flex-start; }
+  .pnote.missing { background:var(--amber-bg);border-color:#FCD34D;color:#92400E; }
+  .btn-calc { display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;margin-top:24px;transition:.2s;font-family:var(--sans); }
+  .btn-calc:hover:not(:disabled) { background:var(--blue); }
+  .btn-calc:disabled { opacity:.4;cursor:not-allowed; }
+  hr.div { border:none;border-top:1px solid var(--g200);margin:32px 0; }
+
+  /* SECCIÓN DE CURSO */
+  .curso-section { margin-bottom: 40px; }
+  .curso-header {
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--navy);color:#fff;
+    padding:12px 18px;border-radius:var(--r) var(--r) 0 0;
+    flex-wrap:wrap;gap:10px;
+  }
+  .curso-header-left { display:flex;align-items:center;gap:12px; }
+  .curso-title { font-size:14px;font-weight:600; }
+  .curso-sub   { font-size:11px;color:#94A3B8;margin-top:2px; }
+  .curso-actions { display:flex;gap:8px;align-items:center; }
+  .btn-exp { display:flex;align-items:center;gap:5px;background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.2s;white-space:nowrap; }
+  .btn-exp:hover { background:#15803D; }
+
+  /* MINI STATS */
+  .mini-stats { display:flex;gap:0;background:#fff;border:1px solid var(--g200);border-top:none;border-bottom:none; }
+  .ms { flex:1;padding:10px 14px;text-align:center;border-right:1px solid var(--g200); }
+  .ms:last-child { border-right:none; }
+  .ms-l { font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.05em; }
+  .ms-v { font-size:18px;font-weight:700;font-family:var(--mono);margin-top:2px; }
+
+  /* TABLE */
+  .tw { overflow-x:auto;border-radius:0 0 var(--r) var(--r);box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  table { width:100%;border-collapse:collapse;background:#fff;font-size:13px;table-layout:fixed; }
+  thead th { background:var(--blue);color:#fff;padding:9px 10px;text-align:center;font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;white-space:normal;line-height:1.3; }
+  thead th:nth-child(2) { text-align:left; }
+  tbody tr:nth-child(even) td { background:var(--g50); }
+  tbody tr:hover td { background:var(--ice); }
+  tbody tr td.nf-highlight { background:var(--g100); }
+  tbody tr:nth-child(even) td.nf-highlight { background:#E9ECEF; }
+  tbody tr:hover td.nf-highlight { background:#DCE9FB; }
+  td { padding:9px 8px;border-bottom:1px solid var(--g100); overflow:hidden;text-overflow:ellipsis; }
+  td.num { font-family:var(--mono);font-size:12px;color:var(--g400);text-align:center;width:32px; }
+  td.nm  { font-weight:500;white-space:normal; }
+  td.nm-edit {
+    cursor:text; border-radius:4px;
+    transition:background .15s, box-shadow .15s;
+  }
+  td.nm-edit:hover { background:#FFF8E6; box-shadow:inset 0 0 0 1px #FCD34D; }
+  td.nm-edit:focus { background:#FFFBEB; box-shadow:inset 0 0 0 1.5px var(--sky); outline:none; }
+  td.mn  { font-family:var(--mono);font-size:11px;text-align:center;white-space:normal;word-break:break-word; }
+  td.nt  { font-family:var(--mono);font-weight:600;font-size:14px;text-align:center; }
+  td.nf  { font-family:var(--mono);font-weight:700;font-size:15px;text-align:center; }
+  .gn { color:var(--green); } .rn { color:var(--red); } .an { color:var(--amber); }
+
+  /* Columnas secundarias: más discretas para no competir con la nota final */
+  td.detail { color:var(--g400); font-size:11px; font-weight:500; opacity:.85; padding:9px 12px; }
+  td.mn.detail { color:var(--g400); }
+
+  /* Nota final destacada */
+  td.nf-highlight {
+    font-size:17px; font-weight:700;
+    background:var(--g50);
+    border-left:1px solid var(--g200);
+    width:90px;
+  }
+  thead th:last-child { border-left:1px solid rgba(255,255,255,.15); width:90px; }
+
+  .msg { padding:14px 16px;border-radius:var(--r);font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-top:12px; }
+  .msg.warn { background:var(--amber-bg);color:var(--amber);border:1px solid #FCD34D; }
+
+  /* RESUMEN GLOBAL */
+  .global-bar { background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--sh); }
+  .gb-label { font-size:12px;color:var(--g600);font-weight:500; }
+  .gb-stat  { font-size:13px;font-weight:600;font-family:var(--mono); }
+
+  @media(max-width:600px){ header{padding:16px;} .wrap{padding:20px 16px;} .mini-stats{flex-wrap:wrap;} }
+
+  /* AVISO BEST ATTEMPT */
+  .aviso-best {
+    display:flex;gap:14px;align-items:flex-start;
+    background:#FFF8E6;border:1px solid #F5C842;border-left:4px solid #D97706;
+    border-radius:var(--r);padding:14px 16px;margin-bottom:24px;
+  }
+  .aviso-icon { font-size:20px;flex-shrink:0;margin-top:1px; }
+  .aviso-title { font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px; }
+  .aviso-text  { font-size:12px;color:#78350F;line-height:1.6; }
+
+  /* AVISO INFO (azul) */
+  .aviso-info {
+    display:flex;gap:14px;align-items:flex-start;
+    background:var(--ice);border:1px solid #BFDBFE;border-left:4px solid var(--sky);
+    border-radius:var(--r);padding:14px 16px;margin-bottom:20px;
+  }
+  .aviso-info .aviso-title { color:var(--blue); }
+  .aviso-info .aviso-text  { color:#1E40AF; }
+
+  /* FOOTER */
+  .footer {
+    margin-top:48px;padding:16px 0 8px;
+    border-top:1px solid var(--g200);
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    font-size:12px;color:var(--g400);
+  }
+  .footer a { color:var(--sky);text-decoration:none;font-weight:500; }
+  .footer a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<header>
+  <div class="hico">📚</div>
+  <div>
+    <h1>Calculadora E-book · Inglés</h1>
+    <p>Duoc UC — Carga los CSV de Oxford y obtén las notas automáticamente</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- AVISO BEST ATTEMPT -->
+  <div class="aviso-best">
+    <div class="aviso-icon">⚠️</div>
+    <div class="aviso-body">
+      <div class="aviso-title">Antes de descargar el CSV desde Oxford</div>
+      <div class="aviso-text">Asegúrate de seleccionar <strong>Best Attempt</strong> en la plataforma antes de exportar. Por defecto, Oxford muestra el <em>primer intento</em> del estudiante, no el mejor. Si no cambias esta opción, las notas calculadas no reflejarán el rendimiento real del curso.</div>
+    </div>
+  </div>
+
+  <div class="step">Paso 1 — Cargar archivos CSV</div>
+  <div class="drop" id="drop">
+    <input type="file" id="fi" accept=".csv" multiple>
+    <div class="drop-ico">📂</div>
+    <h2>Arrastra los archivos CSV aquí</h2>
+    <p>Puedes cargar varios archivos a la vez · Cada archivo = un curso</p>
+    <span class="btn-br">Seleccionar archivos</span>
+  </div>
+  <div class="flist"   id="flist"></div>
+  <div id="notices"></div>
+  <button class="btn-calc" id="btnCalc" disabled>⚡ Calcular notas</button>
+  <div id="msgs"></div>
+  <div id="results"></div>
+
+  <!-- PIE DE PÁGINA -->
+  <div class="footer">
+    <span>¿Problemas con la herramienta?</span>
+    <a href="mailto:v.moralesm@profesor.duoc.cl?subject=Problema%20Calculadora%20E-book">Escríbele a Víctor Morales — v.moralesm@profesor.duoc.cl</a>
+  </div>
+
+</div>
+
+<script>
+// ── NIVELES ──────────────────────────────────────────────────────────────────
+const NIVELES = [
+  { key:'Starter A', label:'Básico I',        tipo:'normal',         grupo:'basico-a',    f:'basico',          cat:'basico'     },
+  { key:'Starter B', label:'Básico II',       tipo:'normal',         grupo:'basico-b',    f:'basico',          cat:'basico'     },
+  { key:'Level 1A',  label:'Elemental I',     tipo:'normal',         grupo:'elemental-a', f:'elemental',       cat:'elemental'  },
+  { key:'Level 1B',  label:'Elemental II',    tipo:'normal',         grupo:'elemental-b', f:'elemental',       cat:'elemental'  },
+  { key:'Level 2A',  label:'Intermedio I',    tipo:'normal',         grupo:'intermedio-a',f:'intermedio',      cat:'intermedio' },
+  { key:'Level 2B',  label:'Intermedio II',   tipo:'normal',         grupo:'intermedio-b',f:'intermedio',      cat:'intermedio' },
+  // Intermedio Alto: dos archivos (Student Book + Workbook), mismo "Level 3"
+  { key:'Level 3 Student Book', label:'Intermedio Alto', tipo:'par_unico', grupo:'int-alto-sb', f:'intermedio_alto', cat:'int-alto'   },
+  { key:'Level 3 Workbook',     label:'Intermedio Alto', tipo:'par_unico', grupo:'int-alto-wb', f:'intermedio_alto', cat:'int-alto'   },
+  // Pre Avanzado: dos archivos (Student Book + Workbook), mismo "Level 4"
+  { key:'Level 4 Student Book', label:'Pre Avanzado',    tipo:'par_unico', grupo:'pre-av-sb',   f:'pre_avanzado',    cat:'pre-av'     },
+  { key:'Level 4 Workbook',     label:'Pre Avanzado',    tipo:'par_unico', grupo:'pre-av-wb',   f:'pre_avanzado',    cat:'pre-av'     },
+];
+const PARES = [
+  { label:'Básico Intensivo',     a:'basico-a',    b:'basico-b',    f:'basico'          },
+  { label:'Elemental Intensivo',  a:'elemental-a', b:'elemental-b', f:'elemental'       },
+  { label:'Intermedio Intensivo', a:'intermedio-a',b:'intermedio-b',f:'intermedio'      },
+  { label:'Intermedio Alto',      a:'int-alto-sb', b:'int-alto-wb', f:'intermedio_alto' },
+  { label:'Pre Avanzado',         a:'pre-av-sb',   b:'pre-av-wb',   f:'pre_avanzado'    },
+];
+
+// ── FÓRMULAS ─────────────────────────────────────────────────────────────────
+function calcNotas(comp, score, f) {
+  let nc;
+  if (f === 'basico') {
+    if      (comp >= 30) nc = 7;
+    else if (comp >= 15) nc = 4 + ((comp - 15) / 15) * 3;
+    else                 nc = 1 + (comp / 15) * 3;
+  } else if (f === 'intermedio_alto' || f === 'pre_avanzado') {
+    if      (comp >= 27) nc = 7;
+    else if (comp >= 14) nc = 4 + ((comp - 14) / 13) * 3;
+    else                 nc = 1 + (comp / 14) * 3;
+  } else {
+    if      (comp >= 19) nc = 7;
+    else if (comp >= 9)  nc = 4 + ((comp - 9) / 10) * 3;
+    else                 nc = 1 + (comp / 9) * 3;
+  }
+  let ns;
+  if      (score >= 100) ns = 7;
+  else if (score >= 60)  ns = 4 + (score - 60) * (3 / 40);
+  else                   ns = 1 + score * (3 / 60);
+  nc = Math.min(7, Math.max(1, nc));
+  ns = Math.min(7, Math.max(1, ns));
+  return { nc: rd(nc), ns: rd(ns), nf: rd((nc + ns) / 2) };
+}
+const rd = n => Math.round(n * 10) / 10;
+
+// ── NOMBRE: OXFORD → PORTAL (Apellidos Nombre) ───────────────────────────────
+// Oxford: "NOMBRE1 NOMBRE2 APE1 APE2" → Portal: "APE1 APE2 NOMBRE1 NOMBRE2"
+// Estrategia: ordenar alfabéticamente para comparación independiente del formato
+function normNombre(s) {
+  return s.trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+// Partículas que deben quedar pegadas a la palabra siguiente
+const PARTICULAS = new Set(['DEL','DE','LA','LAS','LOS','Y','VAN','VON','DA','DOS','SAN','SANTA']);
+
+// Agrupa el nombre completo en "unidades": una partícula + la palabra
+// siguiente cuentan como una sola unidad (ej: "del Carmen" → 1 unidad)
+function agruparUnidades(partes) {
+  const unidades = [];
+  let i = 0;
+  while (i < partes.length) {
+    if (PARTICULAS.has(partes[i]) && i + 1 < partes.length) {
+      unidades.push(partes[i] + ' ' + partes[i + 1]);
+      i += 2;
+    } else {
+      unidades.push(partes[i]);
+      i += 1;
+    }
+  }
+  return unidades;
+}
+
+// Convertir nombre Oxford (Nombres Apellidos) al formato portal (Apellidos Nombres)
+// Las partículas (del, de la, etc.) se mantienen unidas a la palabra que las sigue
+// para no romper nombres compuestos como "del Carmen" o apellidos como "de la Fuente".
+function oxfordAPortal(nombre) {
+  const partes   = normNombre(nombre).split(' ');
+  if (partes.length <= 2) return partes.join(' ');
+
+  const unidades = agruparUnidades(partes);
+  if (unidades.length <= 2) return unidades.join(' ');
+
+  // Mover la primera mitad de las UNIDADES al final
+  const mitad = Math.floor(unidades.length / 2);
+  return [...unidades.slice(mitad), ...unidades.slice(0, mitad)].join(' ');
+}
+
+// Clave de comparación: palabras ordenadas alfabéticamente
+function claveNombre(s) {
+  return normNombre(s).split(' ').sort().join(' ');
+}
+
+// ── PARSER CSV UTF-16 ─────────────────────────────────────────────────────────
+function parsearTexto(txt, filename) {
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  const lineas = txt.split(/\r?\n/);
+  const filas  = lineas.map(l => l.split('\t'));
+
+  // Extraer nombre del libro (buscar fila con "American English File")
+  let learningMaterial = '';
+  for (let i = 0; i < Math.min(filas.length, 6); i++) {
+    const cel = (filas[i][1] || '').trim();
+    if (cel.includes('American English File')) { learningMaterial = cel; break; }
+  }
+
+  // Extraer código de curso del nombre del archivo (ej: INU6101-003V)
+  const matchCurso = filename.match(/([A-Z]{2,4}\d{4}-\d{3}[A-Z])/);
+  const codigoCurso = matchCurso ? matchCurso[1] : filename.replace('.csv','');
+
+  // Buscar fila de encabezado
+  let hi = -1;
+  for (let i = 0; i < Math.min(filas.length, 6); i++) {
+    if ((filas[i][2] || '').trim() === 'Student') { hi = i; break; }
+  }
+  if (hi === -1) return null;
+
+  const estudiantes = [];
+  for (let i = hi + 2; i < filas.length; i++) {
+    const f = filas[i];
+    const nombre = (f[2] || '').trim();
+    if (!nombre) continue;
+    const cRaw = (f[4] || '0').replace('%','').replace(',','.').trim();
+    const sRaw = (f[5] || '0').replace('%','').replace(',','.').trim();
+    const comp  = cRaw === '-' || cRaw === '' ? 0 : parseFloat(cRaw)  || 0;
+    const score = sRaw === '-' || sRaw === '' ? 0 : parseFloat(sRaw) || 0;
+    estudiantes.push({ nombreOxford: nombre, comp, score });
+  }
+
+  return { learningMaterial, codigoCurso, estudiantes };
+}
+
+// Extrae un nombre corto del libro desde el Learning Material
+// ej: "...Level Starter A Student Book and Workbook..." → "Level Starter A"
+//     "...Level 2B Student Book and Workbook..."        → "Level 2B"
+//     "...Level 3 Workbook E-book"                       → "Level 3 Workbook"
+function nombreCortoLibro(lm) {
+  // Niveles con A/B (Starter A/B, 1A/1B, 2A/2B): un solo split, sin distinción SB/WB
+  let m = lm.match(/Level\s+(\w+\s*[AB])\b/i);
+  if (m) return 'Level ' + m[1].replace(/\s+/g, ' ');
+
+  // Level 3 / Level 4 con Student Book o Workbook por separado
+  m = lm.match(/Level\s+(\d+)\s+(Student Book|Workbook)/i);
+  if (m) return 'Level ' + m[1] + ' ' + m[2];
+
+  return '';
+}
+
+function detectNivel(lm, filename) {
+  const esIntensivo = /^INI/i.test(filename);
+  for (const n of NIVELES) {
+    if (!lm.includes(n.key)) continue;
+    // Si el archivo es INI, los cursos normales pasan a ser intensivos (libro A o B)
+    if (esIntensivo && n.tipo === 'normal') {
+      return { ...n,
+        label: n.label.replace(/\s+(I{1,2})$/, '').trim() + ' Intensivo',
+        tipo: 'intensivo_par'   // marcamos como parte de par intensivo
+      };
+    }
+    return n;
+  }
+  return null;
+}
+
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+let archivos = [];
+
+// ── DROP ZONE ─────────────────────────────────────────────────────────────────
+const drop = document.getElementById('drop');
+const fi   = document.getElementById('fi');
+drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); cargar([...e.dataTransfer.files]); });
+fi.addEventListener('change', () => cargar([...fi.files]));
+
+function cargar(files) {
+  const csvs = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+  if (!csvs.length) return;
+  let pending = csvs.length;
+  csvs.forEach(file => {
+    const r = new FileReader();
+    r.onload = e => {
+      const parsed = parsearTexto(e.target.result, file.name);
+      if (parsed) {
+        const nivel = detectNivel(parsed.learningMaterial, file.name);
+        archivos.push({ nombre: file.name, parsed, nivel });
+      }
+      if (--pending === 0) renderLista();
+    };
+    r.readAsText(file, 'UTF-16');
+  });
+}
+
+// ── RENDER LISTA ──────────────────────────────────────────────────────────────
+function renderLista() {
+  const lista   = document.getElementById('flist');
+  const notices = document.getElementById('notices');
+  lista.innerHTML = notices.innerHTML = '';
+
+  // Precalcular el índice del archivo emparejado (si existe) para cada item
+  const parejaDe = new Array(archivos.length).fill(-1);
+  archivos.forEach((item, idx) => {
+    if (!item.nivel || !item.parsed) return;
+    if (item.nivel.tipo !== 'intensivo_par' && item.nivel.tipo !== 'par_unico') return;
+    const par = PARES.find(p => p.a === item.nivel.grupo || p.b === item.nivel.grupo);
+    if (!par) return;
+    const grupoPar = (par.a === item.nivel.grupo) ? par.b : par.a;
+    const oi = archivos.findIndex((other, j) =>
+      j !== idx && parejaDe[j] === -1 &&
+      other.parsed && other.nivel && other.nivel.grupo === grupoPar &&
+      other.parsed.codigoCurso === item.parsed.codigoCurso
+    );
+    if (oi !== -1) { parejaDe[idx] = oi; parejaDe[oi] = idx; }
+  });
+
+  function crearChip(item, idx, posicionPar) {
+    const div = document.createElement('div');
+    div.className = 'fchip';
+    const bc = item.nivel
+      ? `badge cat-${item.nivel.cat}`
+      : 'badge unk';
+    const bt = item.nivel ? item.nivel.label : '⚠ No identificado';
+    const libroCorto = item.parsed ? nombreCortoLibro(item.parsed.learningMaterial) : '';
+
+    if (posicionPar) {
+      div.classList.add('paired', `cat-${item.nivel.cat}`, posicionPar);
+    }
+
+    div.innerHTML = `
+      <span class="ico">📄</span>
+      <span class="nm" title="${item.nombre}">
+        ${item.parsed ? item.parsed.codigoCurso : item.nombre}
+        ${libroCorto ? `<span class="nm-book">${libroCorto}</span>` : ''}
+      </span>
+      <span class="${bc}">${bt}</span>
+      <button class="chip-rm" data-i="${idx}">✕</button>`;
+    return div;
+  }
+
+  const yaRenderizado = new Set();
+  archivos.forEach((item, idx) => {
+    if (yaRenderizado.has(idx)) return;
+    const pareja = parejaDe[idx];
+
+    if (pareja !== -1) {
+      // Renderizar como par unido en un wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'pair-group';
+      wrapper.appendChild(crearChip(item, idx, 'pair-top'));
+      wrapper.appendChild(crearChip(archivos[pareja], pareja, 'pair-bottom'));
+      lista.appendChild(wrapper);
+      yaRenderizado.add(idx);
+      yaRenderizado.add(pareja);
+    } else {
+      lista.appendChild(crearChip(item, idx, null));
+      yaRenderizado.add(idx);
+    }
+  });
+  lista.querySelectorAll('.chip-rm').forEach(b =>
+    b.addEventListener('click', () => { archivos.splice(+b.dataset.i, 1); renderLista(); })
+  );
+
+  // Detectar duplicados: mismo learningMaterial cargado dos veces PARA EL MISMO CURSO
+  // (dos secciones distintas del mismo nivel comparten learningMaterial y eso es normal)
+  const porCurso = {};
+  archivos.forEach(a => {
+    if (a.parsed) {
+      const cod = a.parsed.codigoCurso;
+      (porCurso[cod] = porCurso[cod] || []).push(a.parsed.learningMaterial);
+    }
+  });
+  const duplicadosPorCurso = []; // [{codigo, lm, count}]
+  Object.entries(porCurso).forEach(([cod, lms]) => {
+    const cuenta = {};
+    lms.forEach(lm => cuenta[lm] = (cuenta[lm] || 0) + 1);
+    Object.entries(cuenta).forEach(([lm, count]) => {
+      if (count > 1) duplicadosPorCurso.push({ codigo: cod, lm, count });
+    });
+  });
+  const hayDuplicados = duplicadosPorCurso.length > 0;
+
+  // Validar pares por CÓDIGO DE CURSO (no globalmente), usando parejaDe ya calculado
+  let hayParesIncompletos = false;
+
+  // Avisar duplicados primero
+  if (hayDuplicados) {
+    hayParesIncompletos = true;
+    duplicadosPorCurso.forEach(({ codigo, lm, count }) => {
+      const match = lm.match(/Level\s+[\w\s]+(?=Student|Workbook)/i);
+      const libroCorto = match ? match[0].trim() : lm.slice(0,40);
+      const d = document.createElement('div');
+      d.className = 'pnote missing';
+      d.innerHTML = `🚫 <span>En <strong>${codigo}</strong> se cargó el mismo archivo <strong>${count} veces</strong> (${libroCorto}). Para un intensivo necesitas los CSV de dos libros <em>distintos</em>.</span>`;
+      notices.appendChild(d);
+    });
+  }
+
+  // Agrupar archivos intensivos por código de curso
+  const intensivosPorCurso = {}; // { codigoCurso: [items] }
+  archivos.forEach(a => {
+    if (a.nivel && a.parsed && (a.nivel.tipo === 'intensivo_par' || a.nivel.tipo === 'par_unico')) {
+      const cod = a.parsed.codigoCurso;
+      (intensivosPorCurso[cod] = intensivosPorCurso[cod] || []).push(a);
+    }
+  });
+
+  if (!hayDuplicados) {
+    Object.entries(intensivosPorCurso).forEach(([codigo, items]) => {
+      // Determinar a qué PAR pertenece este grupo de archivos
+      const gruposPresentes = new Set(items.map(a => a.nivel.grupo));
+
+      PARES.forEach(p => {
+        const tieneA = gruposPresentes.has(p.a);
+        const tieneB = gruposPresentes.has(p.b);
+        if (!tieneA && !tieneB) return; // este código de curso no es de este par
+
+        const esSBWB = p.a.endsWith('-sb') || p.a.endsWith('-wb');
+        const nombreA = esSBWB ? 'Student Book' : 'libro A';
+        const nombreB = esSBWB ? 'Workbook'     : 'libro B';
+
+        if (tieneA && tieneB) {
+          const d = document.createElement('div');
+          d.className = 'pnote';
+          d.innerHTML = `✅ <span>Par completo: <strong>${p.label}</strong> (${codigo}) — ambos archivos cargados, se combinarán automáticamente.</span>`;
+          notices.appendChild(d);
+        } else if (tieneA && !tieneB) {
+          hayParesIncompletos = true;
+          const d = document.createElement('div');
+          d.className = 'pnote missing';
+          d.innerHTML = `⚠️ <span><strong>${p.label} (${codigo}):</strong> falta el CSV del <strong>${nombreB}</strong>. Carga el segundo archivo para poder calcular.</span>`;
+          notices.appendChild(d);
+        } else if (!tieneA && tieneB) {
+          hayParesIncompletos = true;
+          const d = document.createElement('div');
+          d.className = 'pnote missing';
+          d.innerHTML = `⚠️ <span><strong>${p.label} (${codigo}):</strong> falta el CSV del <strong>${nombreA}</strong>. Carga el segundo archivo para poder calcular.</span>`;
+          notices.appendChild(d);
+        }
+      });
+    });
+  } else {
+    hayParesIncompletos = true;
+  }
+
+  document.getElementById('btnCalc').disabled = archivos.length === 0 || hayParesIncompletos;
+}
+
+// ── CALCULAR ──────────────────────────────────────────────────────────────────
+document.getElementById('btnCalc').addEventListener('click', calcular);
+
+function calcular() {
+  document.getElementById('msgs').innerHTML    = '';
+  document.getElementById('results').innerHTML = '';
+
+  // Construir cursos individuales
+  const cursos = []; // [{titulo, codigo, nivel, rows}]
+
+  // Normales e intensivos solo
+  archivos.forEach(item => {
+    if (!item.nivel) return;
+    const { tipo, label, f } = item.nivel;
+    if (tipo === 'normal' || tipo === 'intensivo_solo') {
+      const rows = item.parsed.estudiantes.map(est => {
+        const n = calcNotas(est.comp, est.score, f);
+        return {
+          nombrePortal: oxfordAPortal(est.nombreOxford),
+          nombreOxford: normNombre(est.nombreOxford),
+          claveComp:    claveNombre(est.nombreOxford),
+          comp: est.comp, score: est.score, ...n
+        };
+      });
+      // Ordenar alfabéticamente por nombre en formato portal
+      rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
+      cursos.push({
+        titulo: label + (tipo === 'intensivo_solo' ? ' (Intensivo)' : ''),
+        codigo: item.parsed.codigoCurso,
+        rows
+      });
+    }
+  });
+
+  // Pares intensivos: agrupar por código de curso para no mezclar secciones
+  const intensivosPorCurso = {};
+  archivos.forEach(a => {
+    if (a.nivel && a.parsed && (a.nivel.tipo === 'intensivo_par' || a.nivel.tipo === 'par_unico')) {
+      const cod = a.parsed.codigoCurso;
+      (intensivosPorCurso[cod] = intensivosPorCurso[cod] || []).push(a);
+    }
+  });
+
+  Object.entries(intensivosPorCurso).forEach(([codigo, items]) => {
+    PARES.forEach(par => {
+      const itemA = items.find(a => a.nivel.grupo === par.a);
+      const itemB = items.find(a => a.nivel.grupo === par.b);
+      if (!itemA || !itemB) return;
+
+      const mapB = {};
+      itemB.parsed.estudiantes.forEach(e => {
+        mapB[claveNombre(e.nombreOxford)] = e;
+      });
+
+      const rows = [];
+      itemA.parsed.estudiantes.forEach(eA => {
+        const eB = mapB[claveNombre(eA.nombreOxford)];
+        const compT  = eA.comp  + (eB ? eB.comp  : 0);
+        const scoreT = eA.score + (eB ? eB.score : 0);
+        const n = calcNotas(compT, scoreT, par.f);
+        rows.push({
+          nombrePortal: oxfordAPortal(eA.nombreOxford),
+          nombreOxford: normNombre(eA.nombreOxford),
+          claveComp:    claveNombre(eA.nombreOxford),
+          comp:  `${eA.comp.toFixed(1)}%+${(eB?eB.comp:0).toFixed(1)}%`,
+          score: `${eA.score.toFixed(1)}%+${(eB?eB.score:0).toFixed(1)}%`,
+          ...n
+        });
+      });
+      rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
+      cursos.push({
+        titulo: par.label,
+        codigo: codigo,
+        esPar: true,
+        rows
+      });
+    });
+  });
+
+  if (!cursos.length || cursos.every(c => !c.rows.length)) {
+    document.getElementById('msgs').innerHTML =
+      `<div class="msg warn">⚠️ No se encontraron estudiantes. Verifica que los archivos CSV sean los correctos.</div>`;
+    return;
+  }
+
+  window._cursos = cursos;
+  renderResultados(cursos);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function col(n) { return n >= 4 ? 'gn' : n >= 3 ? 'an' : 'rn'; }
+
+// Editar nombre inline: actualiza el dato, reordena y re-renderiza
+function actualizarNombre(celda) {
+  const ci = +celda.dataset.ci;
+  const ri = +celda.dataset.ri;
+  const nuevo = celda.textContent.trim().toUpperCase().replace(/\s+/g, ' ');
+
+  const curso = window._cursos[ci];
+  if (!nuevo || curso.rows[ri].nombrePortal === nuevo) {
+    celda.textContent = curso.rows[ri].nombrePortal; // sin cambios reales
+    return;
+  }
+
+  curso.rows[ri].nombrePortal = nuevo;
+  curso.rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
+  renderResultados(window._cursos);
+}
+
+function renderResultados(cursos) {
+  const container = document.getElementById('results');
+  let html = '<hr class="div">';
+
+  html += `<div class="aviso-info">
+    <div class="aviso-icon">✎</div>
+    <div class="aviso-body">
+      <div class="aviso-title">Los nombres se ordenan automáticamente como en el portal de calificaciones</div>
+      <div class="aviso-text">La conversión de "Nombre Apellido" (Oxford) a "Apellido Nombre" (portal de calificaciones) es automática y funciona en la mayoría de los casos. Sin embargo, con nombres compuestos, apellidos de origen extranjero, o partículas como "del", "de la", etc., puede no quedar exactamente igual al portal. <strong>Haz clic sobre cualquier nombre para corregirlo</strong>: al guardar, la fila se reordenará automáticamente.</div>
+    </div>
+  </div>`;
+
+  // Barra resumen global si hay más de 1 curso
+  if (cursos.length > 1) {
+    const total  = cursos.reduce((s,c) => s + c.rows.length, 0);
+    const sobre4 = cursos.reduce((s,c) => s + c.rows.filter(r => r.nf >= 4).length, 0);
+    html += `<div class="global-bar">
+      <span class="gb-label">Resumen global:</span>
+      <span class="gb-stat" style="color:var(--navy)">${total} estudiantes</span>
+      <span class="gb-label">·</span>
+      <span class="gb-stat" style="color:var(--green)">${sobre4} sobre 4.0</span>
+      <span class="gb-label">·</span>
+      <span class="gb-stat" style="color:var(--red)">${total - sobre4} bajo 4.0</span>
+      <div style="margin-left:auto">
+        <button class="btn-exp" onclick="exportarTodo()">⬇ Exportar todo</button>
+      </div>
+    </div>`;
+  }
+
+  cursos.forEach((curso, ci) => {
+    const total  = curso.rows.length;
+    const sobre4 = curso.rows.filter(r => r.nf >= 4).length;
+    const prom   = total ? curso.rows.reduce((s,r) => s + r.nf, 0) / total : 0;
+
+    html += `<div class="curso-section">
+      <div class="curso-header">
+        <div class="curso-header-left">
+          <div>
+            <div class="curso-title">${curso.titulo}</div>
+            <div class="curso-sub">${curso.codigo}</div>
+          </div>
+        </div>
+        <div class="curso-actions">
+          <button class="btn-exp" onclick="exportarCurso(${ci})">⬇ Exportar</button>
+        </div>
+      </div>
+      <div class="mini-stats">
+        <div class="ms"><div class="ms-l">Estudiantes</div><div class="ms-v" style="color:var(--navy)">${total}</div></div>
+        <div class="ms"><div class="ms-l">Sobre 4.0</div><div class="ms-v" style="color:var(--green)">${sobre4}</div></div>
+        <div class="ms"><div class="ms-l">Bajo 4.0</div><div class="ms-v" style="color:var(--red)">${total - sobre4}</div></div>
+        <div class="ms"><div class="ms-l">Promedio</div><div class="ms-v" style="color:var(--blue)">${prom.toFixed(1)}</div></div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>#</th><th>Estudiante (orden portal de calificaciones) <span style="opacity:.6;font-weight:400">✎ editable</span></th>
+          ${curso.esPar
+            ? `<th>% Completion (Libro A + B)</th><th>% Score (Libro A + B)</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`
+            : `<th>% Completion</th><th>% Score</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`}
+        </tr></thead>
+        <tbody>${curso.rows.map((r, i) => `<tr>
+          <td class="num">${i + 1}</td>
+          <td class="nm nm-edit" contenteditable="true" spellcheck="false"
+              data-ci="${ci}" data-ri="${i}"
+              onblur="actualizarNombre(this)"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+              title="Haz clic para corregir el nombre. Al salir del campo, se reordenará.">${r.nombrePortal}</td>
+          ${curso.esPar
+            ? `<td class="mn detail">${r.comp}</td><td class="mn detail">${r.score}</td>`
+            : `<td class="mn">${typeof r.comp === 'number' ? r.comp.toFixed(1)+'%' : r.comp}</td><td class="mn">${typeof r.score=== 'number' ? r.score.toFixed(1)+'%': r.score}</td>`}
+          <td class="nt detail ${col(r.nc)}">${r.nc.toFixed(1)}</td>
+          <td class="nt detail ${col(r.ns)}">${r.ns.toFixed(1)}</td>
+          <td class="nf nf-highlight ${col(r.nf)}">${r.nf.toFixed(1)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── EXPORTAR ──────────────────────────────────────────────────────────────────
+function csvDeCurso(curso) {
+  const bom = '\uFEFF';
+  const lineas = [['#','Estudiante','% Completion','% Score','N. Completion','N. Score','Nota Final'].join(','),
+    ...curso.rows.map((r,i) => [
+      i+1, `"${r.nombrePortal}"`,
+      typeof r.comp ==='number'?r.comp.toFixed(1)+'%':r.comp,
+      typeof r.score==='number'?r.score.toFixed(1)+'%':r.score,
+      r.nc.toFixed(1), r.ns.toFixed(1), r.nf.toFixed(1)
+    ].join(','))
+  ].join('\n');
+  return bom + lineas;
+}
+
+function descargar(contenido, nombre) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([contenido], {type:'text/csv;charset=utf-8'}));
+  a.download = nombre;
+  a.click();
+}
+
+function exportarCurso(ci) {
+  const curso = window._cursos[ci];
+  descargar(csvDeCurso(curso), `notas_${curso.codigo}_${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+function exportarTodo() {
+  const bom = '\uFEFF';
+  const partes = window._cursos.map(c => {
+    const header = `"=== ${c.titulo} — ${c.codigo} ==="\n`;
+    const lineas = ['#,Estudiante,% Completion,% Score,N. Completion,N. Score,Nota Final',
+      ...c.rows.map((r,i) => [
+        i+1,`"${r.nombrePortal}"`,
+        typeof r.comp==='number'?r.comp.toFixed(1)+'%':r.comp,
+        typeof r.score==='number'?r.score.toFixed(1)+'%':r.score,
+        r.nc.toFixed(1),r.ns.toFixed(1),r.nf.toFixed(1)
+      ].join(','))
+    ].join('\n');
+    return header + lineas;
+  });
+  descargar(bom + partes.join('\n\n'), `notas_todos_${new Date().toISOString().slice(0,10)}.csv`);
+}
+</script>
+</body>
+</html>
