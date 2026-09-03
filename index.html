@@ -620,8 +620,8 @@ function calcular() {
       itemA.parsed.estudiantes.forEach(eA => {
         const eB = mapB[claveNombre(eA.nombreOxford)];
         const compT  = eA.comp  + (eB ? eB.comp  : 0);
-        const scoreT = eA.score + (eB ? eB.score : 0);
-        const n = calcNotas(compT, scoreT, par.f);
+        const scoreProm = (eA.score + (eB ? eB.score : 0)) / 2;
+        const n = calcNotas(compT, scoreProm, par.f);
         rows.push({
           nombrePortal: oxfordAPortal(eA.nombreOxford),
           nombreOxford: normNombre(eA.nombreOxford),
@@ -727,7 +727,7 @@ function renderResultados(cursos) {
         <thead><tr>
           <th>#</th><th>Estudiante (orden portal de calificaciones) <span style="opacity:.6;font-weight:400">✎ editable</span></th>
           ${curso.esPar
-            ? `<th>% Completion (Libro A + B)</th><th>% Score (Libro A + B)</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`
+            ? `<th>% Completion (Libro A + B)</th><th>% Score (promedio A y B)</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`
             : `<th>% Completion</th><th>% Score</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`}
         </tr></thead>
         <tbody>${curso.rows.map((r, i) => `<tr>
