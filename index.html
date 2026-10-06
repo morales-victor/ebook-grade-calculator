@@ -137,10 +137,7 @@
   .tag { display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap; }
   .tag.warn  { background:var(--amber-bg);color:#92400E;border:1px solid #FCD34D; }
   .tag.muted { background:var(--g100);color:var(--g600);border:1px solid var(--g200); }
-  /* Cambiar apellidos (⇄) */
-  .btn-swap { background:none;border:1px solid transparent;border-radius:4px;color:var(--g400);cursor:pointer;font-size:12px;padding:0 4px;margin-left:4px;line-height:1.4;vertical-align:1px;font-family:var(--sans); }
-  .btn-swap:hover, .btn-swap:focus-visible { color:var(--sky);border-color:#BFDBFE;background:var(--ice);outline:none; }
-  /* Marcar nota como ingresada en el portal */
+  /* Marcar nota como ingresada en el portal (opcional, ayuda para organizarse) */
   td.chk { text-align:center;padding:4px; }
   .btn-chk { width:28px;height:28px;border-radius:50%;border:1.5px solid var(--g200);background:#fff;color:transparent;cursor:pointer;font-size:14px;font-weight:700;line-height:1; }
   .btn-chk:hover { border-color:var(--green);color:var(--g400); }
@@ -240,7 +237,7 @@
     tr { break-inside:avoid; }
     tbody tr:hover td { background:inherit; }
     .nm-edit { box-shadow:none !important; background:none !important; }
-    .btn-swap, td.chk, th.chk { display:none; }
+    td.chk, th.chk { display:none; }
     col.c-chk { width:0; }
     tr.hecho td:not(.chk) { opacity:1; }
     tr.actual td { background:inherit !important; font-weight:inherit; }
@@ -375,45 +372,112 @@ function normNombre(s) {
 // Partículas que deben quedar pegadas a la palabra siguiente
 const PARTICULAS = new Set(['DEL','DE','LA','LAS','LOS','Y','VAN','VON','DA','DOS','SAN','SANTA']);
 
-// Agrupa el nombre completo en "unidades": una partícula + la palabra
-// siguiente cuentan como una sola unidad (ej: "del Carmen" → 1 unidad)
+// Agrupa el nombre completo en "unidades": una o más partículas seguidas +
+// la palabra siguiente cuentan como una sola unidad
+// (ej: "del Carmen", "de la Fuente", "de los Ángeles" → 1 unidad cada una)
 function agruparUnidades(partes) {
   const unidades = [];
-  let i = 0;
-  while (i < partes.length) {
-    if (PARTICULAS.has(partes[i]) && i + 1 < partes.length) {
-      unidades.push(partes[i] + ' ' + partes[i + 1]);
-      i += 2;
-    } else {
-      unidades.push(partes[i]);
-      i += 1;
-    }
-  }
+  let pendientes = [];
+  partes.forEach(p => {
+    if (PARTICULAS.has(p)) { pendientes.push(p); return; }
+    unidades.push([...pendientes, p].join(' '));
+    pendientes = [];
+  });
+  if (pendientes.length) unidades.push(pendientes.join(' ')); // partícula suelta al final
   return unidades;
 }
 
-// Convertir nombre Oxford (Nombres Apellidos) al formato portal (Apellidos Nombres)
-// Regla: con 3 unidades o menos → última unidad = apellido
-//        con 4 unidades o más   → últimas 2 unidades = apellidos
+// Diccionarios para decidir si una palabra es nombre de pila o apellido.
+// Se comparan sin tildes (Oxford a veces las omite). Las palabras que son
+// ambas cosas (Cruz, Paz, León…) van en los dos y se tratan como "no sé".
+const sinTildes = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const lista = s => new Set(s.trim().split(/\s+/).map(sinTildes));
+const NOMBRES_PILA = lista(`
+  AARON ABEL ABRAHAM ADAN ADOLFO ADRIAN AGUSTIN ALAN ALBERTO ALEJANDRO ALEXANDER ALEXIS ALFONSO
+  ALFREDO ALONSO ALVARO AMARO ANDRES ANGEL ANIBAL ANTONIO ARIEL ARMANDO ARTURO AUGUSTO BASTIAN
+  BAUTISTA BENJAMIN BERNARDO BORIS BRANDON BRAYAN BRUNO BYRON CAMILO CARLOS CESAR CHRISTIAN
+  CHRISTOPHER CLAUDIO CRISTIAN CRISTOBAL CRISTOPHER DAMIAN DANIEL DANILO DARIO DAVID DIEGO DOMINGO
+  DYLAN EDGAR EDISON EDUARDO ELIAS EMILIANO EMILIO ENRIQUE ERICK ERIK ERNESTO ESTEBAN EUGENIO
+  EZEQUIEL FABIAN FACUNDO FEDERICO FELIPE FERNANDO FRANCISCO FRANCO GABRIEL GASPAR GERARDO GERMAN
+  GONZALO GUILLERMO GUSTAVO HECTOR HERNAN HUGO IAN IGNACIO ISAAC ISMAEL IVAN JAIME JAVIER JEAN
+  JEREMY JESUS JOAQUIN JONATHAN JORGE JOSE JOSUE JUAN JULIAN JULIO KEVIN LEANDRO LEONARDO LORENZO
+  LUCAS LUCIANO LUIS MANUEL MARCELO MARCO MARCOS MARIO MARTIN MATEO MATIAS MAURICIO MAXIMILIANO
+  MAXIMO MIGUEL MOISES NAHUEL NELSON NICOLAS NOAH OCTAVIO OMAR OSCAR PABLO PATRICIO PEDRO RAFAEL
+  RAMON RAUL RENATO RENE RICARDO ROBERTO RODRIGO RUBEN SAMUEL SANTIAGO SEBASTIAN SERGIO SIMON
+  TOMAS VICENTE VICTOR WALTER YERKO
+  ABIGAIL ADRIANA AGUSTINA AINHOA ALEJANDRA ALEXANDRA ALICIA ALINE AMANDA AMELIA ANA ANAIS ANDREA
+  ANGELA ANGELICA ANGELES ANITA ANTONELLA ANTONIA ARACELI AYELEN AYLEN BARBARA BEATRIZ BELEN BLANCA
+  CAMILA CARLA CARMEN CAROLINA CATALINA CECILIA CELESTE CINTHIA CLARA CLAUDIA CONSTANZA CONSUELO
+  CRISTINA DANIELA DANIELLA DANITZA DAYANA DEBORA DENISSE DIANA DOMINGA EDITH ELENA ELISA ELIZABETH
+  EMILIA EMILY ESPERANZA ESTEFANIA ESTER ESTHER EVA EVELYN FABIOLA FERNANDA FLOR FLORENCIA FRANCISCA
+  GABRIELA GENESIS GERALDINE GLORIA GRACIELA HELEN ISABEL ISABELLA ISIDORA IVONNE JACQUELINE JAVIERA
+  JENNIFER JESSICA JOSEFA JOSEFINA JUANA JULIA JULIETA KAREN KARINA KARLA KATHERINE KIARA LAURA
+  LEONOR LETICIA LORENA LOURDES LUCIA LUISA LUZ MACARENA MAGDALENA MAITE MANUELA MAR MARCELA
+  MARGARITA MARIA MARIANA MARIBEL MARISOL MARTA MARTINA MAYRA MELANIE MERCEDES MICAELA MICHELLE
+  MILLARAY MONICA MONSERRAT MONTSERRAT NATALIA NATALY NAYARETH NICOLE NOELIA NORMA OLIVIA PALOMA
+  PAMELA PATRICIA PAULA PAULINA PIA PILAR PRISCILA RAQUEL REBECA ROCIO ROMINA ROSARIO SANDRA SARA
+  SCARLETT SILVIA SOFIA SOL SOLANGE SUSANA TAMARA TERESA TRINIDAD VALENTINA VALERIA VANESSA
+  VERONICA VICTORIA VIOLETA VIVIANA XIMENA YASNA YESENIA YOLANDA ZOE
+  CRUZ PAZ LEON SALVADOR SANTOS ROSA`);
+const APELLIDOS = lista(`
+  ACEVEDO ACUÑA AEDO AGUILERA AGUIRRE ALARCON ALBORNOZ ALFARO ALLENDE ALVARADO ALVAREZ AMPUERO
+  ANABALON ARANCIBIA ARANEDA ARAVENA ARAYA ARELLANO ARRIAGADA AVENDAÑO AVILA BAEZ BARRA BARRERA
+  BARRIENTOS BASTIAS BECERRA BELTRAN BENAVIDES BRAVO BUSTAMANTE BUSTOS CABRERA CACERES CALDERON
+  CAMPOS CANALES CANTILLANA CARDENAS CARO CARRASCO CARREÑO CARRILLO CARVAJAL CASTILLO CASTRO
+  CERDA CHAVEZ CID CISTERNAS COFRE CONCHA CONTRERAS CORNEJO CORREA CORTES CORVALAN CUEVAS DELGADO
+  DIAZ DONOSO DUARTE DUEÑAS ECHEVERRIA ESCOBAR ESPINOSA ESPINOZA ESTRADA FARIAS FAUNDEZ FERNANDEZ
+  FERRADA FIERRO FIGUEROA FLORES FONSECA FUENTES FUENZALIDA GAETE GAJARDO GALAZ GALLARDO GALLEGOS
+  GALVEZ GARAY GARCIA GARRIDO GATICA GODOY GOMEZ GONZALEZ GUAJARDO GUERRERO GUTIERREZ GUZMAN
+  HENRIQUEZ HERNANDEZ HERRERA HIDALGO IBARRA INOSTROZA JARA JIMENEZ JORQUERA LABRA LAGOS LARA LEAL
+  LEIVA LILLO LIZAMA LIZANA LOPEZ LOYOLA LUNA MALDONADO MANCILLA MANRIQUEZ MARDONES MARIN MARTINEZ
+  MATAMALA MATURANA MEDINA MELLA MENA MENDEZ MENDOZA MERINO MEZA MIRANDA MOLINA MONTECINOS
+  MONTENEGRO MONTOYA MORA MORAGA MORALES MORENO MOYA MUÑOZ NAVARRETE NAVARRO NEIRA NUÑEZ OJEDA
+  OLAVE OLIVA OLIVARES OLMOS ORELLANA ORTEGA ORTIZ OSORIO OSSES OYARZO OYARZUN PACHECO PALMA PARDO
+  PAREDES PARRA PEÑA PERALTA PEREZ PINO PINTO PIZARRO POBLETE PONCE POZO PRADO QUEZADA QUILODRAN
+  QUINTANA QUIROZ RAMIREZ RAMOS REBOLLEDO RECABARREN RETAMAL REYES RIFFO RIOS RIQUELME RIVAS
+  RIVERA ROA ROBLES RODRIGUEZ ROJAS ROMAN ROMERO ROSALES SAAVEDRA SAEZ SAGREDO SALAS SALAZAR
+  SALDIVIA SALGADO SALINAS SANCHEZ SANDOVAL SANHUEZA SANTANA SANTIBAÑEZ SEGOVIA SEPULVEDA SILVA
+  SOLIS SOTO SUAZO TAPIA TOBAR TOLEDO TORO TORRES TRONCOSO TRUJILLO ULLOA URBINA URIBE URRUTIA
+  VALDEBENITO VALDES VALDIVIA VALENCIA VALENZUELA VALLEJOS VARGAS VASQUEZ VEGA VELASQUEZ VELIZ
+  VENEGAS VERA VERDUGO VERGARA VIDAL VILCHES VILLALOBOS VILLARROEL VIVANCO YAÑEZ ZAMORA ZAPATA
+  ZUÑIGA
+  CRUZ PAZ LEON SALVADOR SANTOS ROSA`);
+
+// ¿La unidad es nombre de pila ('n'), apellido ('a') o no se sabe (null)?
+function tipoUnidad(u) {
+  const palabras = sinTildes(u).split(' ');
+  const nucleo   = palabras[palabras.length - 1];
+  if (palabras.length > 1) {
+    // "San Martín", "Santa María" → apellido; "del Carmen", "de los Ángeles" → nombre
+    // si el núcleo es un nombre de pila; "de la Fuente", "del Río" → apellido
+    if (palabras[0] === 'SAN' || palabras[0] === 'SANTA') return 'a';
+    return NOMBRES_PILA.has(nucleo) && !APELLIDOS.has(nucleo) ? 'n' : 'a';
+  }
+  if (u.includes('-')) return 'a'; // apellido compuesto con guion (Pérez-Cotapos)
+  const n = NOMBRES_PILA.has(nucleo), a = APELLIDOS.has(nucleo);
+  return n && !a ? 'n' : a && !n ? 'a' : null;
+}
+
+// Convertir nombre Oxford (Nombres Apellidos) al formato portal (Apellidos Nombres).
+// La duda siempre es si hay 1 o 2 apellidos, y la decide la PENÚLTIMA unidad:
+//   - si es un apellido conocido      → 2 apellidos ("Carla Díaz Soto")
+//   - si es un nombre de pila conocido → 1 apellido  ("Gustavo Adolfo Dueñas")
+//   - si no se reconoce, regla por conteo: 3 unidades o menos → 1 apellido,
+//     4 o más → 2 apellidos
 function oxfordAPortal(nombre) {
   const partes   = normNombre(nombre).split(' ');
   if (partes.length <= 1) return partes.join(' ');
   const unidades = agruparUnidades(partes);
   if (unidades.length <= 1) return unidades[0];
 
-  const numApellidos = unidades.length <= 3 ? 1 : 2;
+  let numApellidos = 1;
+  if (unidades.length >= 3) {
+    const tipo = tipoUnidad(unidades[unidades.length - 2]);
+    numApellidos = tipo === 'a' ? 2 : tipo === 'n' ? 1 : (unidades.length <= 3 ? 1 : 2);
+  }
   const apellidos = unidades.slice(-numApellidos);
   const nombres   = unidades.slice(0, unidades.length - numApellidos);
   return [...apellidos, ...nombres].join(' ');
-}
-
-// Alternativas de orden para el botón ⇄: con 1 apellido o con 2 apellidos.
-// Resuelve el caso ambiguo de la heurística (3 palabras: ¿2 nombres + 1
-// apellido, o 1 nombre + 2 apellidos?) sin obligar a reescribir el nombre.
-function variantesPortal(nombre) {
-  const unidades = agruparUnidades(normNombre(nombre).split(' '));
-  if (unidades.length < 3) return [];
-  return [1, 2].map(k => [...unidades.slice(-k), ...unidades.slice(0, -k)].join(' '));
 }
 
 // Clave de comparación: palabras ordenadas alfabéticamente
@@ -831,24 +895,22 @@ const estaIngresada = (curso, r) => ingresadas[claveFila(curso, r)] === r.nf;
 function filasHtml(curso, ci) {
   const ok = curso.rows.filter(r => r.nf >= 4).length;
   const compacta = prefs.compacta;
-  // Fila "actual": la primera aún no ingresada, para no perderse al alternar con el portal
-  const iActual = curso.rows.findIndex(r => !estaIngresada(curso, r));
+  // Fila "actual": la primera aún no ingresada, para no perderse al alternar con el portal.
+  // Marcar es opcional: solo se destaca cuando el docente ya empezó a usar las marcas.
+  const usaMarcas = curso.rows.some(r => estaIngresada(curso, r));
+  const iActual = usaMarcas ? curso.rows.findIndex(r => !estaIngresada(curso, r)) : -1;
   return curso.rows.map((r, i) => {
     const hecho    = estaIngresada(curso, r);
     const esSinAct = r.comp === 0 && r.score === 0;
     const tags = (r.faltaEn ? `<span class="tag warn" title="Este estudiante no aparece en el CSV del ${esc(r.faltaEn)}; se usó 0% para ese libro">⚠ no está en ${esc(r.faltaEn)}</span>` : '')
                + (esSinAct ? `<span class="tag muted">sin actividad</span>` : '');
-    const vars  = variantesPortal(r.nombreOxford);
-    const otra  = vars.length ? vars[(vars.indexOf(r.nombrePortal) + 1) % vars.length] : '';
-    const swap  = otra ? `<button class="btn-swap" data-act="swap" data-ci="${ci}" data-k="${esc(r.claveComp)}"
-        title="Cambiar apellidos → ${esc(otra)}" aria-label="Cambiar apellidos a ${esc(otra)}">⇄</button>` : '';
     const clases = [r.nf < 4 ? 'bajo' : 'ok', hecho ? 'hecho' : '', i === iActual ? 'actual' : ''].join(' ');
     return `<tr class="${clases}">
     <td class="num">${i + 1}</td>
     <td class="nm"><span class="nm-edit" contenteditable="true" spellcheck="false" role="textbox"
         aria-label="Nombre del estudiante, editable"
         data-ci="${ci}" data-ri="${i}" data-k="${esc(r.claveComp)}"
-        title="En Oxford: ${esc(r.nombreOxford)} — haz clic para corregir">${esc(r.nombrePortal)}</span>${swap}${tags}</td>
+        title="En Oxford: ${esc(r.nombreOxford)} — haz clic para corregir">${esc(r.nombrePortal)}</span>${tags}</td>
     ${compacta ? '' : (curso.esPar
       ? `<td class="mn"><span class="pct">${p1(r.comp)}%</span><span class="sub">${p1(r.compA)} + ${p1(r.compB)}</span></td>
          <td class="mn"><span class="pct">${p1(r.score)}%</span><span class="sub">(${p1(r.scoreA)} + ${p1(r.scoreB)}) ÷ 2</span></td>`
@@ -857,7 +919,7 @@ function filasHtml(curso, ci) {
          <td class="nt detail ${col(r.ns)}">${p1(r.ns)}</td>`}
     <td class="nf nf-highlight ${col(r.nf)}" aria-label="Nota final ${p1(r.nf)}${r.nf < 4 ? ', bajo 4.0' : ''}">${p1(r.nf)}</td>
     <td class="chk"><button class="btn-chk" data-act="marcar" data-ci="${ci}" data-k="${esc(r.claveComp)}"
-        aria-pressed="${hecho}" title="${hecho ? 'Desmarcar' : 'Marcar como ingresada en el portal'}"
+        aria-pressed="${hecho}" title="${hecho ? 'Desmarcar' : 'Opcional: marcar como ya ingresada en el portal'}"
         aria-label="${hecho ? 'Ingresada' : 'Marcar como ingresada'}: ${esc(r.nombrePortal)}">✓</button></td>
   </tr>`; }).join('')
   + (ok === curso.rows.length ? `<tr class="vacio"><td colspan="${compacta ? 4 : 8}">✅ Todos los estudiantes de este curso tienen 4.0 o más.</td></tr>` : '');
@@ -866,12 +928,13 @@ function filasHtml(curso, ci) {
 function progresoHtml(curso, ci) {
   const n = curso.rows.length;
   const hechas = curso.rows.filter(r => estaIngresada(curso, r)).length;
+  if (!hechas) return ''; // marcar es opcional: sin marcas no se muestra avance
   return `<span class="curso-prog${hechas === n ? ' listo' : ''}">✓ <strong>${hechas} / ${n}</strong> ingresadas</span>
-    ${hechas ? `<button class="btn-link-w" data-act="reiniciar" data-ci="${ci}" title="Quitar todas las marcas de este curso">reiniciar</button>` : ''}`;
+    <button class="btn-link-w" data-act="reiniciar" data-ci="${ci}" title="Quitar todas las marcas de este curso">quitar marcas</button>`;
 }
 
 // Re-dibuja solo el tbody y el avance de un curso. Si el foco iba hacia un
-// elemento de esa tabla (otro nombre, un ✓, un ⇄), se le devuelve tras
+// elemento de esa tabla (otro nombre, un ✓), se le devuelve tras
 // reordenar; si era un botón, se ejecuta el clic que se habría perdido.
 function redibujarCurso(ci, destino) {
   const curso = cursos[ci];
@@ -913,17 +976,6 @@ function cambiarNombre(curso, row, nuevo) {
 
 const filaPorClave = (curso, k) => curso.rows.find(r => r.claveComp === k);
 
-function alternarApellidos(ci, k) {
-  const curso = cursos[ci];
-  const row   = filaPorClave(curso, k);
-  const vars  = variantesPortal(row.nombreOxford);
-  cambiarNombre(curso, row, vars[(vars.indexOf(row.nombrePortal) + 1) % vars.length]);
-  redibujarCurso(ci);
-  // Mantener el foco en el ⇄ de ese estudiante (puede haber cambiado de posición)
-  const b = [...document.querySelectorAll(`#tb-${ci} .btn-swap`)].find(el => el.dataset.k === k);
-  if (b) { b.focus(); b.closest('tr').scrollIntoView({ block: 'nearest' }); }
-}
-
 function marcar(ci, k) {
   const curso = cursos[ci];
   const row   = filaPorClave(curso, k);
@@ -959,11 +1011,8 @@ function renderResultados() {
       <span class="aviso-icon">✎</span>
       <span class="aviso-title">Revisa los nombres: deben quedar como en el portal (apellido paterno primero) para que el orden coincida</span>
     </summary>
-    <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre.
-      <br>• Usa el botón <strong>⇄</strong> junto al nombre para alternar entre <em>1 apellido</em> y <em>2 apellidos</em>.
-      <br>• Para otros casos, <strong>haz clic sobre el nombre y corrígelo</strong>. La fila se reordena sola.
-      <br>• Al ingresar las notas en el portal, marca cada una con <strong>✓</strong> (o presiona Espacio para marcar y pasar a la siguiente). La fila destacada en amarillo es la que sigue.
-      <br>Las correcciones y las marcas quedan guardadas en este navegador.</div>
+    <div class="aviso-text">Los nombres se convierten automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres poco comunes, apellidos extranjeros o compuestos. Si un nombre quedó mal, <strong>haz clic sobre él y corrígelo</strong>: la fila se reordena sola y la corrección queda guardada en este navegador.
+      <br><br><em>Opcional:</em> si te ayuda a organizarte mientras ingresas las notas en el portal, puedes marcarlas con <strong>✓</strong> a medida que avanzas. No es necesario usarlo.</div>
   </details>`;
 
   // Barra superior: resumen global (si hay más de 1 curso) + controles
@@ -1015,11 +1064,11 @@ function renderResultados() {
       <div class="tw"><table class="${compacta ? 'compacta' : ''}">
         <colgroup><col style="width:44px"><col>${compacta ? '' : `<col style="width:${w}px"><col style="width:${w}px"><col style="width:96px"><col style="width:84px">`}<col style="width:${compacta ? 110 : 90}px"><col class="c-chk" style="width:52px"></colgroup>
         <thead><tr>
-          <th>#</th><th>Estudiante <span style="opacity:.6;font-weight:400;text-transform:none">✎ clic para corregir · ⇄ apellidos</span></th>
+          <th>#</th><th>Estudiante <span style="opacity:.6;font-weight:400;text-transform:none">✎ clic para corregir</span></th>
           ${compacta ? '' : (curso.esPar
             ? `<th>% Completion<small>suma de ambos libros</small></th><th>% Score<small>promedio de ambos libros</small></th>`
             : `<th>% Completion</th><th>% Score</th>`) + `<th>N. Completion</th><th>N. Score</th>`}
-          <th>Nota Final</th><th class="chk" title="Marca cada nota al ingresarla en el portal">✓</th>
+          <th>Nota Final</th><th class="chk" title="Opcional: si te ayuda a organizarte, marca las notas que ya ingresaste en el portal">✓</th>
         </tr></thead>
         <tbody id="tb-${ci}">${filasHtml(curso, ci)}</tbody>
       </table></div>
@@ -1042,7 +1091,6 @@ resultsEl.addEventListener('click', e => {
   if (!b) return;
   const ci = +b.dataset.ci;
   if (b.dataset.act === 'marcar')    marcar(ci, b.dataset.k);
-  if (b.dataset.act === 'swap')      alternarApellidos(ci, b.dataset.k);
   if (b.dataset.act === 'reiniciar') reiniciarMarcas(ci);
   if (b.dataset.act === 'exportar')  exportar();
   if (b.dataset.act === 'imprimir')  window.print();
