@@ -12,7 +12,8 @@
     --amber-bg:#FFFBEB; --red-bg:#FEF2F2;
     --g50:#F9FAFB; --g100:#F3F4F6; --g200:#E5E7EB;
     --g400:#9CA3AF; --g600:#4B5563; --g900:#111827;
-    --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'SF Mono',Menlo,monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     --r:8px; --sh:0 1px 3px rgba(0,0,0,.08);
   }
   body { font-family:var(--sans); background:var(--g50); color:var(--g900); min-height:100vh; }
@@ -24,12 +25,17 @@
   .step { font-size:11px;font-weight:600;color:var(--sky);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px; }
   .drop { border:2px dashed var(--g200);border-radius:var(--r);background:#fff;padding:40px 24px;text-align:center;cursor:pointer;transition:.2s;position:relative; }
   .drop:hover,.drop.over { border-color:var(--sky);background:var(--ice); }
+  .drop:focus-within { border-color:var(--sky);box-shadow:0 0 0 3px rgba(59,130,246,.25); }
   .drop input { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
   .drop-ico { font-size:36px;margin-bottom:12px; }
   .drop h2 { font-size:15px;font-weight:500; }
-  .drop p  { font-size:13px;color:var(--g400);margin-top:4px; }
+  .drop p  { font-size:13px;color:var(--g600);margin-top:4px; }
   .drop .btn-br { display:inline-block;margin-top:14px;background:var(--sky);color:#fff;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:500;pointer-events:none; }
   .flist { display:flex;flex-direction:column;gap:8px;margin-top:16px; }
+  .flist-bar { display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--g600); }
+  .flist-bar:empty { display:none; }
+  .btn-link { background:none;border:none;color:var(--g600);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;padding:4px; }
+  .btn-link:hover { color:var(--red); }
   .pair-group { display:flex;flex-direction:column; }
   .fchip { display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:10px 14px;font-size:13px;box-shadow:var(--sh); }
   .fchip.paired {
@@ -44,6 +50,8 @@
     border-top:1px solid var(--g100);
     box-shadow:none;
   }
+  .fchip.err { border-left:4px solid var(--amber);background:#FFFDF5; }
+  .fchip.err .nm { color:var(--g600); }
   .fchip.cat-basico     { --pair-color:#378ADD; }
   .fchip.cat-elemental  { --pair-color:#639922; }
   .fchip.cat-intermedio { --pair-color:#BA7517; }
@@ -51,10 +59,10 @@
   .fchip.cat-pre-av     { --pair-color:#1D9E75; }
   .fchip .ico { font-size:18px; }
   .fchip .nm  { flex:1;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-  .fchip .nm-book { font-weight:400;font-size:11px;color:var(--g400);margin-left:8px; }
+  .fchip .nm-book { font-weight:400;font-size:11px;color:var(--g600);margin-left:8px; }
   .badge { font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--ice);color:var(--blue);white-space:nowrap;flex-shrink:0; }
   .badge.int { background:#EDE9FE;color:#5B21B6; }
-  .badge.unk { background:var(--amber-bg);color:var(--amber); }
+  .badge.unk { background:var(--amber-bg);color:#92400E; }
   /* Colores por nivel/categoría */
   .badge.cat-basico     { background:#E6F1FB; color:#0C447C; }
   .badge.cat-elemental  { background:#EAF3DE; color:#27500A; }
@@ -62,9 +70,10 @@
   .badge.cat-int-alto   { background:#FBEAF0; color:#72243E; }
   .badge.cat-pre-av     { background:#E1F5EE; color:#085041; }
   .chip-rm { background:none;border:none;cursor:pointer;color:var(--g400);font-size:18px;line-height:1;padding:0 2px;flex-shrink:0; }
-  .chip-rm:hover { color:var(--red); }
+  .chip-rm:hover, .chip-rm:focus-visible { color:var(--red); }
   .pnote { background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#5B21B6;margin-top:4px;display:flex;gap:8px;align-items:flex-start; }
   .pnote.missing { background:var(--amber-bg);border-color:#FCD34D;color:#92400E; }
+  #notices { display:flex;flex-direction:column;gap:4px;margin-top:8px; }
   .btn-calc { display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;margin-top:24px;transition:.2s;font-family:var(--sans); }
   .btn-calc:hover:not(:disabled) { background:var(--blue); }
   .btn-calc:disabled { opacity:.4;cursor:not-allowed; }
@@ -81,92 +90,139 @@
   .curso-header-left { display:flex;align-items:center;gap:12px; }
   .curso-title { font-size:14px;font-weight:600; }
   .curso-sub   { font-size:11px;color:#94A3B8;margin-top:2px; }
-  .curso-actions { display:flex;gap:8px;align-items:center; }
+  .curso-actions { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
   .btn-exp { display:flex;align-items:center;gap:5px;background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.2s;white-space:nowrap; }
   .btn-exp:hover { background:#15803D; }
+  .btn-sec { display:flex;align-items:center;gap:5px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.2s;white-space:nowrap; }
+  .btn-sec:hover { background:rgba(255,255,255,.1);border-color:#fff; }
+  .curso-alerta { background:var(--amber-bg);border:1px solid #FCD34D;border-top:none;color:#92400E;font-size:12px;padding:8px 14px; }
 
   /* MINI STATS */
   .mini-stats { display:flex;gap:0;background:#fff;border:1px solid var(--g200);border-top:none;border-bottom:none; }
   .ms { flex:1;padding:10px 14px;text-align:center;border-right:1px solid var(--g200); }
   .ms:last-child { border-right:none; }
-  .ms-l { font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.05em; }
+  .ms-l { font-size:10px;color:var(--g600);text-transform:uppercase;letter-spacing:.05em; }
   .ms-v { font-size:18px;font-weight:700;font-family:var(--mono);margin-top:2px; }
 
   /* TABLE */
-  .tw { overflow-x:auto;border-radius:0 0 var(--r) var(--r);box-shadow:0 2px 8px rgba(0,0,0,.06); }
-  table { width:100%;border-collapse:collapse;background:#fff;font-size:13px;table-layout:fixed; }
-  thead th { background:var(--blue);color:#fff;padding:9px 10px;text-align:center;font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;white-space:normal;line-height:1.3; }
+  .tw { overflow:auto;max-height:70vh;border-radius:0 0 var(--r) var(--r);box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--g200);border-top:none; }
+  table { width:100%;min-width:760px;border-collapse:collapse;background:#fff;font-size:13px;table-layout:fixed; }
+  thead th { position:sticky;top:0;z-index:1;background:var(--blue);color:#fff;padding:9px 10px;text-align:center;font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;white-space:normal;line-height:1.3; }
   thead th:nth-child(2) { text-align:left; }
+  thead th small { display:block;text-transform:none;letter-spacing:0;opacity:.75;font-weight:400;font-size:10px;margin-top:2px; }
   tbody tr:nth-child(even) td { background:var(--g50); }
   tbody tr:hover td { background:var(--ice); }
   tbody tr td.nf-highlight { background:var(--g100); }
   tbody tr:nth-child(even) td.nf-highlight { background:#E9ECEF; }
   tbody tr:hover td.nf-highlight { background:#DCE9FB; }
   td { padding:9px 8px;border-bottom:1px solid var(--g100); overflow:hidden;text-overflow:ellipsis; }
-  td.num { font-family:var(--mono);font-size:12px;color:var(--g400);text-align:center;width:32px; }
+  td.num { font-family:var(--mono);font-size:12px;color:var(--g600);text-align:center; }
+  tr.bajo td.num { box-shadow:inset 3px 0 0 var(--red); }
   td.nm  { font-weight:500;white-space:normal; }
-  td.nm-edit {
-    cursor:text; border-radius:4px;
+  .nm-edit {
+    cursor:text; border-radius:4px; padding:1px 3px; margin:-1px -3px;
     transition:background .15s, box-shadow .15s;
   }
-  td.nm-edit:hover { background:#FFF8E6; box-shadow:inset 0 0 0 1px #FCD34D; }
-  td.nm-edit:focus { background:#FFFBEB; box-shadow:inset 0 0 0 1.5px var(--sky); outline:none; }
+  .nm-edit:hover { background:#FFF8E6; box-shadow:inset 0 0 0 1px #FCD34D; }
+  .nm-edit:focus { background:#FFFBEB; box-shadow:inset 0 0 0 1.5px var(--sky); outline:none; }
   td.mn  { font-family:var(--mono);font-size:11px;text-align:center;white-space:normal;word-break:break-word; }
+  td.mn .pct { font-size:12px;font-weight:600;color:var(--g900); }
+  td.mn .sub { display:block;font-size:10px;color:var(--g600);margin-top:2px; }
   td.nt  { font-family:var(--mono);font-weight:600;font-size:14px;text-align:center; }
   td.nf  { font-family:var(--mono);font-weight:700;font-size:15px;text-align:center; }
   .gn { color:var(--green); } .rn { color:var(--red); } .an { color:var(--amber); }
+  .tag { display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap; }
+  .tag.warn  { background:var(--amber-bg);color:#92400E;border:1px solid #FCD34D; }
+  .tag.muted { background:var(--g100);color:var(--g600);border:1px solid var(--g200); }
+  tr.vacio { display:none; }
+  tr.vacio td { text-align:center;color:var(--g600);font-size:12px;padding:16px; }
+  #results.solo-bajo tr.ok { display:none; }
+  #results.solo-bajo tr.vacio { display:table-row; }
 
   /* Columnas secundarias: más discretas para no competir con la nota final */
-  td.detail { color:var(--g400); font-size:11px; font-weight:500; opacity:.85; padding:9px 12px; }
-  td.mn.detail { color:var(--g400); }
+  td.detail { color:var(--g600); font-size:11px; font-weight:500; padding:9px 12px; }
 
   /* Nota final destacada */
   td.nf-highlight {
     font-size:17px; font-weight:700;
     background:var(--g50);
     border-left:1px solid var(--g200);
-    width:90px;
   }
-  thead th:last-child { border-left:1px solid rgba(255,255,255,.15); width:90px; }
+  thead th:last-child { border-left:1px solid rgba(255,255,255,.15); }
 
   .msg { padding:14px 16px;border-radius:var(--r);font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-top:12px; }
-  .msg.warn { background:var(--amber-bg);color:var(--amber);border:1px solid #FCD34D; }
+  .msg.warn { background:var(--amber-bg);color:#92400E;border:1px solid #FCD34D; }
 
-  /* RESUMEN GLOBAL */
-  .global-bar { background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--sh); }
+  /* Resultados desactualizados */
+  #results.stale .curso-section, #results.stale .global-bar { opacity:.4;pointer-events:none;filter:grayscale(.6); }
+
+  /* RESUMEN GLOBAL + CONTROLES */
+  .global-bar { background:#fff;border:1px solid var(--g200);border-radius:var(--r);padding:12px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;box-shadow:var(--sh); }
   .gb-label { font-size:12px;color:var(--g600);font-weight:500; }
   .gb-stat  { font-size:13px;font-weight:600;font-family:var(--mono); }
+  .gb-controls { display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-left:auto; }
+  .gb-controls label { font-size:12px;color:var(--g600);display:flex;align-items:center;gap:6px;cursor:pointer; }
+  .gb-controls select { font:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--g200);border-radius:6px;background:#fff;color:var(--g900); }
 
-  @media(max-width:600px){ header{padding:16px;} .wrap{padding:20px 16px;} .mini-stats{flex-wrap:wrap;} }
+  @media(max-width:600px){ header{padding:16px;} .wrap{padding:20px 16px;} .mini-stats{flex-wrap:wrap;} .ms{flex:1 1 33%;} .gb-controls{margin-left:0;} }
+
+  /* AVISOS PLEGABLES */
+  details.aviso { border-radius:var(--r);margin-bottom:24px; }
+  details.aviso summary { list-style:none;display:flex;gap:12px;align-items:center;padding:12px 16px;cursor:pointer; }
+  details.aviso summary::-webkit-details-marker { display:none; }
+  details.aviso summary::after { content:'▾';margin-left:auto;font-size:12px;opacity:.7;transition:transform .2s; }
+  details.aviso:not([open]) summary::after { transform:rotate(-90deg); }
+  details.aviso .aviso-text { padding:0 16px 14px 50px; }
+  .aviso-icon { font-size:20px;flex-shrink:0;width:22px;text-align:center; }
+  .aviso-title { font-size:13px;font-weight:600; }
+  .aviso-text  { font-size:12px;line-height:1.6; }
 
   /* AVISO BEST ATTEMPT */
-  .aviso-best {
-    display:flex;gap:14px;align-items:flex-start;
-    background:#FFF8E6;border:1px solid #F5C842;border-left:4px solid #D97706;
-    border-radius:var(--r);padding:14px 16px;margin-bottom:24px;
-  }
-  .aviso-icon { font-size:20px;flex-shrink:0;margin-top:1px; }
-  .aviso-title { font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px; }
-  .aviso-text  { font-size:12px;color:#78350F;line-height:1.6; }
+  .aviso-best { background:#FFF8E6;border:1px solid #F5C842;border-left:4px solid #D97706; }
+  .aviso-best .aviso-title { color:#92400E; }
+  .aviso-best .aviso-text  { color:#78350F; }
 
   /* AVISO INFO (azul) */
-  .aviso-info {
-    display:flex;gap:14px;align-items:flex-start;
-    background:var(--ice);border:1px solid #BFDBFE;border-left:4px solid var(--sky);
-    border-radius:var(--r);padding:14px 16px;margin-bottom:20px;
-  }
+  .aviso-info { background:var(--ice);border:1px solid #BFDBFE;border-left:4px solid var(--sky); }
   .aviso-info .aviso-title { color:var(--blue); }
   .aviso-info .aviso-text  { color:#1E40AF; }
+
+  /* TOAST */
+  .toast { position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:10;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.2); }
+  .toast.show { opacity:1;transform:translate(-50%,0); }
 
   /* FOOTER */
   .footer {
     margin-top:48px;padding:16px 0 8px;
     border-top:1px solid var(--g200);
     display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    font-size:12px;color:var(--g400);
+    font-size:12px;color:var(--g600);
   }
   .footer a { color:var(--sky);text-decoration:none;font-weight:500; }
   .footer a:hover { text-decoration:underline; }
+  .btn-print { display:flex;align-items:center;gap:5px;background:#fff;color:var(--g900);border:1px solid var(--g200);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);white-space:nowrap; }
+  .btn-print:hover { border-color:var(--g400); }
+
+  /* IMPRESIÓN: solo resultados, un curso por página, tablas completas */
+  @media print {
+    @page { margin:12mm; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body { background:#fff; }
+    header, details.aviso, .step, .drop, .flist, .flist-bar, #notices, .btn-calc, #msgs,
+    .footer, .toast, .gb-controls, .curso-actions, hr.div { display:none !important; }
+    .wrap { max-width:none; padding:0; }
+    .global-bar { box-shadow:none; margin-bottom:12px; }
+    .global-bar:not(:has(.gb-stat)) { display:none; }
+    .curso-section { margin-bottom:0; }
+    .curso-section + .curso-section { break-before:page; }
+    .tw { max-height:none; overflow:visible; box-shadow:none; }
+    table { min-width:0; font-size:11px; }
+    thead { display:table-header-group; }
+    thead th { position:static; }
+    tr { break-inside:avoid; }
+    tbody tr:hover td { background:inherit; }
+    .nm-edit { box-shadow:none !important; background:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -180,24 +236,25 @@
 
 <div class="wrap">
 
-  <!-- AVISO BEST ATTEMPT -->
-  <div class="aviso-best">
-    <div class="aviso-icon">⚠️</div>
-    <div class="aviso-body">
-      <div class="aviso-title">Antes de descargar el CSV desde Oxford</div>
-      <div class="aviso-text">Asegúrate de seleccionar <strong>Best Attempt</strong> en la plataforma antes de exportar. Por defecto, Oxford muestra el <em>primer intento</em> del estudiante, no el mejor. Si no cambias esta opción, las notas calculadas no reflejarán el rendimiento real del curso.</div>
-    </div>
-  </div>
+  <!-- AVISO BEST ATTEMPT (plegable, recuerda su estado) -->
+  <details class="aviso aviso-best" data-pref="avisoBest" open>
+    <summary>
+      <span class="aviso-icon">⚠️</span>
+      <span class="aviso-title">Antes de descargar el CSV desde Oxford, activa <strong>Best Attempt</strong></span>
+    </summary>
+    <div class="aviso-text">Por defecto, Oxford muestra el <em>primer intento</em> del estudiante, no el mejor. Si no cambias esta opción antes de exportar, las notas calculadas no reflejarán el rendimiento real del curso. Usa el CSV tal como lo descargas: si lo abres y lo guardas en Excel, deja de poder leerse.</div>
+  </details>
 
   <div class="step">Paso 1 — Cargar archivos CSV</div>
   <div class="drop" id="drop">
-    <input type="file" id="fi" accept=".csv" multiple>
+    <input type="file" id="fi" accept=".csv" multiple aria-label="Seleccionar archivos CSV de Oxford">
     <div class="drop-ico">📂</div>
     <h2>Arrastra los archivos CSV aquí</h2>
     <p>Puedes cargar varios archivos a la vez · Cada archivo = un curso</p>
     <span class="btn-br">Seleccionar archivos</span>
   </div>
-  <div class="flist"   id="flist"></div>
+  <div class="flist" id="flist"></div>
+  <div class="flist-bar" id="flistBar"></div>
   <div id="notices"></div>
   <button class="btn-calc" id="btnCalc" disabled>⚡ Calcular notas</button>
   <div id="msgs"></div>
@@ -210,6 +267,8 @@
   </div>
 
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 // ── NIVELES ──────────────────────────────────────────────────────────────────
@@ -234,6 +293,12 @@ const PARES = [
   { label:'Intermedio Alto',      a:'int-alto-sb', b:'int-alto-wb', f:'intermedio_alto' },
   { label:'Pre Avanzado',         a:'pre-av-sb',   b:'pre-av-wb',   f:'pre_avanzado'    },
 ];
+
+// Nombres legibles de los dos libros de un par
+function nombresLibros(par) {
+  const esSBWB = par.a.endsWith('-sb') || par.a.endsWith('-wb');
+  return esSBWB ? ['Student Book', 'Workbook'] : ['libro A', 'libro B'];
+}
 
 // ── FÓRMULAS ─────────────────────────────────────────────────────────────────
 function calcNotas(comp, score, f) {
@@ -260,6 +325,23 @@ function calcNotas(comp, score, f) {
   return { nc: rd(nc), ns: rd(ns), nf: rd((nc + ns) / 2) };
 }
 const rd = n => Math.round(n * 10) / 10;
+
+// ── UTILIDADES ───────────────────────────────────────────────────────────────
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+// localStorage puede no estar disponible (modo privado, archivo local bloqueado)
+function lsGet(k)    { try { return localStorage.getItem('calcEbook.' + k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem('calcEbook.' + k, v); } catch {} }
+
+let toastTimer;
+function toast(texto) {
+  const t = document.getElementById('toast');
+  t.textContent = texto;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
 
 // ── NOMBRE: OXFORD → PORTAL (Apellidos Nombre) ───────────────────────────────
 // Oxford: "NOMBRE1 NOMBRE2 APE1 APE2" → Portal: "APE1 APE2 NOMBRE1 NOMBRE2"
@@ -379,8 +461,30 @@ function detectNivel(lm, filename) {
   return null;
 }
 
+// Motivo por el que un archivo no se puede calcular (null si está OK)
+function errorArchivo(item) {
+  if (!item.parsed) return 'No parece un CSV exportado desde Oxford (no se encontró la columna "Student"). Usa el archivo original, sin abrirlo ni guardarlo en Excel.';
+  if (!item.nivel)  return `No se reconoció el nivel del libro${item.parsed.learningMaterial ? ` («${item.parsed.learningMaterial.slice(0, 80)}»)` : ''}.`;
+  if (!item.parsed.estudiantes.length) return 'El archivo no contiene estudiantes.';
+  return null;
+}
+
 // ── ESTADO ───────────────────────────────────────────────────────────────────
 let archivos = [];
+let cursos   = null;          // resultados del último cálculo
+// Correcciones manuales de nombres: "codigoCurso|claveNombre" → nombre portal.
+// Se conservan al recalcular para no perder lo que el docente ya corrigió.
+const correcciones = {};
+const prefs = {
+  decimal:  lsGet('decimal') === 'punto' ? 'punto' : 'coma',
+  soloBajo: false,
+};
+
+// Avisos plegables: recordar si el docente los cerró
+document.querySelectorAll('details.aviso[data-pref]').forEach(d => {
+  if (lsGet(d.dataset.pref) === 'cerrado') d.open = false;
+  d.addEventListener('toggle', () => lsSet(d.dataset.pref, d.open ? 'abierto' : 'cerrado'));
+});
 
 // ── DROP ZONE ─────────────────────────────────────────────────────────────────
 const drop = document.getElementById('drop');
@@ -388,31 +492,45 @@ const fi   = document.getElementById('fi');
 drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); cargar([...e.dataTransfer.files]); });
-fi.addEventListener('change', () => cargar([...fi.files]));
+fi.addEventListener('change', () => { cargar([...fi.files]); fi.value = ''; });
 
-function cargar(files) {
-  const csvs = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
-  if (!csvs.length) return;
-  let pending = csvs.length;
-  csvs.forEach(file => {
+function leerArchivo(file) {
+  return new Promise(res => {
     const r = new FileReader();
-    r.onload = e => {
-      const parsed = parsearTexto(e.target.result, file.name);
-      if (parsed) {
-        const nivel = detectNivel(parsed.learningMaterial, file.name);
-        archivos.push({ nombre: file.name, parsed, nivel });
-      }
-      if (--pending === 0) renderLista();
-    };
+    r.onload  = e => res({ file, txt: e.target.result });
+    r.onerror = () => res({ file, txt: null });
     r.readAsText(file, 'UTF-16');
   });
+}
+
+async function cargar(files) {
+  const csvs  = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+  const otros = files.length - csvs.length;
+  if (otros) toast(`Se ignoraron ${otros} archivo${otros > 1 ? 's' : ''} que no ${otros > 1 ? 'son' : 'es'} .csv`);
+  if (!csvs.length) return;
+
+  const leidos = await Promise.all(csvs.map(leerArchivo));
+  leidos.forEach(({ file, txt }) => {
+    const parsed = txt == null ? null : parsearTexto(txt, file.name);
+    const nivel  = parsed ? detectNivel(parsed.learningMaterial, file.name) : null;
+    archivos.push({ nombre: file.name, parsed, nivel });
+  });
+  renderLista();
 }
 
 // ── RENDER LISTA ──────────────────────────────────────────────────────────────
 function renderLista() {
   const lista   = document.getElementById('flist');
   const notices = document.getElementById('notices');
-  lista.innerHTML = notices.innerHTML = '';
+  const barra   = document.getElementById('flistBar');
+  lista.innerHTML = notices.innerHTML = barra.innerHTML = '';
+
+  const nota = (clase, html) => {
+    const d = document.createElement('div');
+    d.className = clase;
+    d.innerHTML = html;
+    notices.appendChild(d);
+  };
 
   // Precalcular el índice del archivo emparejado (si existe) para cada item
   const parejaDe = new Array(archivos.length).fill(-1);
@@ -433,10 +551,12 @@ function renderLista() {
   function crearChip(item, idx, posicionPar) {
     const div = document.createElement('div');
     div.className = 'fchip';
-    const bc = item.nivel
-      ? `badge cat-${item.nivel.cat}`
-      : 'badge unk';
-    const bt = item.nivel ? item.nivel.label : '⚠ No identificado';
+    const error = errorArchivo(item);
+    let bc, bt;
+    if (!item.parsed)     { bc = 'badge unk'; bt = '⚠ Archivo no válido'; }
+    else if (!item.nivel) { bc = 'badge unk'; bt = '⚠ Nivel no reconocido'; }
+    else                  { bc = `badge cat-${item.nivel.cat}`; bt = item.nivel.label; }
+    if (error) div.classList.add('err');
     const libroCorto = item.parsed ? nombreCortoLibro(item.parsed.learningMaterial) : '';
 
     if (posicionPar) {
@@ -444,13 +564,13 @@ function renderLista() {
     }
 
     div.innerHTML = `
-      <span class="ico">📄</span>
-      <span class="nm" title="${item.nombre}">
-        ${item.parsed ? item.parsed.codigoCurso : item.nombre}
-        ${libroCorto ? `<span class="nm-book">${libroCorto}</span>` : ''}
+      <span class="ico">${error ? '⚠️' : '📄'}</span>
+      <span class="nm" title="${esc(item.nombre)}">
+        ${esc(item.parsed ? item.parsed.codigoCurso : item.nombre)}
+        ${libroCorto ? `<span class="nm-book">${esc(libroCorto)}</span>` : ''}
       </span>
-      <span class="${bc}">${bt}</span>
-      <button class="chip-rm" data-i="${idx}">✕</button>`;
+      <span class="${bc}">${esc(bt)}</span>
+      <button class="chip-rm" data-i="${idx}" aria-label="Quitar ${esc(item.nombre)}" title="Quitar archivo">✕</button>`;
     return div;
   }
 
@@ -476,6 +596,18 @@ function renderLista() {
   lista.querySelectorAll('.chip-rm').forEach(b =>
     b.addEventListener('click', () => { archivos.splice(+b.dataset.i, 1); renderLista(); })
   );
+
+  if (archivos.length) {
+    barra.innerHTML = `<span>${archivos.length} archivo${archivos.length > 1 ? 's' : ''} cargado${archivos.length > 1 ? 's' : ''}</span>
+      <button class="btn-link" id="btnLimpiar">Quitar todos</button>`;
+    document.getElementById('btnLimpiar').addEventListener('click', limpiarTodo);
+  }
+
+  // Archivos que no se pueden calcular: avisar explícitamente que se omitirán
+  archivos.forEach(item => {
+    const error = errorArchivo(item);
+    if (error) nota('pnote missing', `🚫 <span><strong>${esc(item.nombre)}</strong>: ${esc(error)} Este archivo <strong>no se calculará</strong>; quítalo o reemplázalo.</span>`);
+  });
 
   // Detectar duplicados: mismo learningMaterial cargado dos veces PARA EL MISMO CURSO
   // (dos secciones distintas del mismo nivel comparten learningMaterial y eso es normal)
@@ -505,21 +637,12 @@ function renderLista() {
     duplicadosPorCurso.forEach(({ codigo, lm, count }) => {
       const match = lm.match(/Level\s+[\w\s]+(?=Student|Workbook)/i);
       const libroCorto = match ? match[0].trim() : lm.slice(0,40);
-      const d = document.createElement('div');
-      d.className = 'pnote missing';
-      d.innerHTML = `🚫 <span>En <strong>${codigo}</strong> se cargó el mismo archivo <strong>${count} veces</strong> (${libroCorto}). Para un intensivo necesitas los CSV de dos libros <em>distintos</em>.</span>`;
-      notices.appendChild(d);
+      nota('pnote missing', `🚫 <span>En <strong>${esc(codigo)}</strong> se cargó el mismo archivo <strong>${count} veces</strong> (${esc(libroCorto)}). Quita las copias repetidas; para un intensivo necesitas los CSV de dos libros <em>distintos</em>.</span>`);
     });
   }
 
   // Agrupar archivos intensivos por código de curso
-  const intensivosPorCurso = {}; // { codigoCurso: [items] }
-  archivos.forEach(a => {
-    if (a.nivel && a.parsed && (a.nivel.tipo === 'intensivo_par' || a.nivel.tipo === 'par_unico')) {
-      const cod = a.parsed.codigoCurso;
-      (intensivosPorCurso[cod] = intensivosPorCurso[cod] || []).push(a);
-    }
-  });
+  const intensivosPorCurso = agruparIntensivos();
 
   if (!hayDuplicados) {
     Object.entries(intensivosPorCurso).forEach(([codigo, items]) => {
@@ -531,267 +654,374 @@ function renderLista() {
         const tieneB = gruposPresentes.has(p.b);
         if (!tieneA && !tieneB) return; // este código de curso no es de este par
 
-        const esSBWB = p.a.endsWith('-sb') || p.a.endsWith('-wb');
-        const nombreA = esSBWB ? 'Student Book' : 'libro A';
-        const nombreB = esSBWB ? 'Workbook'     : 'libro B';
+        const [nombreA, nombreB] = nombresLibros(p);
 
         if (tieneA && tieneB) {
-          const d = document.createElement('div');
-          d.className = 'pnote';
-          d.innerHTML = `✅ <span>Par completo: <strong>${p.label}</strong> (${codigo}) — ambos archivos cargados, se combinarán automáticamente.</span>`;
-          notices.appendChild(d);
-        } else if (tieneA && !tieneB) {
+          nota('pnote', `✅ <span>Par completo: <strong>${esc(p.label)}</strong> (${esc(codigo)}) — ambos archivos cargados, se combinarán automáticamente.</span>`);
+        } else {
           hayParesIncompletos = true;
-          const d = document.createElement('div');
-          d.className = 'pnote missing';
-          d.innerHTML = `⚠️ <span><strong>${p.label} (${codigo}):</strong> falta el CSV del <strong>${nombreB}</strong>. Carga el segundo archivo para poder calcular.</span>`;
-          notices.appendChild(d);
-        } else if (!tieneA && tieneB) {
-          hayParesIncompletos = true;
-          const d = document.createElement('div');
-          d.className = 'pnote missing';
-          d.innerHTML = `⚠️ <span><strong>${p.label} (${codigo}):</strong> falta el CSV del <strong>${nombreA}</strong>. Carga el segundo archivo para poder calcular.</span>`;
-          notices.appendChild(d);
+          const falta = tieneA ? nombreB : nombreA;
+          nota('pnote missing', `⚠️ <span><strong>${esc(p.label)} (${esc(codigo)}):</strong> falta el CSV del <strong>${falta}</strong>. Carga el segundo archivo para poder calcular.</span>`);
         }
       });
     });
-  } else {
-    hayParesIncompletos = true;
   }
 
-  document.getElementById('btnCalc').disabled = archivos.length === 0 || hayParesIncompletos;
+  const calculables = archivos.filter(a => !errorArchivo(a)).length;
+  document.getElementById('btnCalc').disabled = calculables === 0 || hayParesIncompletos;
+
+  // Si ya había resultados, quedan desactualizados hasta volver a calcular
+  if (cursos) marcarDesactualizado();
+}
+
+function agruparIntensivos() {
+  const porCurso = {}; // { codigoCurso: [items] }
+  archivos.forEach(a => {
+    if (a.nivel && a.parsed && (a.nivel.tipo === 'intensivo_par' || a.nivel.tipo === 'par_unico')) {
+      const cod = a.parsed.codigoCurso;
+      (porCurso[cod] = porCurso[cod] || []).push(a);
+    }
+  });
+  return porCurso;
+}
+
+function marcarDesactualizado() {
+  const results = document.getElementById('results');
+  results.classList.add('stale');
+  document.getElementById('msgs').innerHTML = archivos.length
+    ? `<div class="msg warn">🔄 <span>Cambiaste los archivos después de calcular. Presiona <strong>Calcular notas</strong> para actualizar los resultados. Las correcciones de nombres que hiciste se mantendrán.</span></div>`
+    : '';
+  if (!archivos.length) { cursos = null; results.innerHTML = ''; results.classList.remove('stale'); }
+}
+
+function limpiarTodo() {
+  archivos = [];
+  cursos = null;
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  results.classList.remove('stale');
+  document.getElementById('msgs').innerHTML = '';
+  renderLista();
 }
 
 // ── CALCULAR ──────────────────────────────────────────────────────────────────
 document.getElementById('btnCalc').addEventListener('click', calcular);
 
+// Construye una fila de resultados aplicando la corrección manual del nombre, si existe
+function fila(codigo, nombreOxford, datos, notas) {
+  const claveComp = claveNombre(nombreOxford);
+  return {
+    nombrePortal: correcciones[codigo + '|' + claveComp] || oxfordAPortal(nombreOxford),
+    claveComp, ...datos, ...notas
+  };
+}
+
+const ordenarFilas = rows => rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
+
 function calcular() {
-  document.getElementById('msgs').innerHTML    = '';
-  document.getElementById('results').innerHTML = '';
+  document.getElementById('msgs').innerHTML = '';
+  const nuevos = []; // [{titulo, codigo, rows, esPar?, libA?, libB?}]
 
-  // Construir cursos individuales
-  const cursos = []; // [{titulo, codigo, nivel, rows}]
-
-  // Normales e intensivos solo
+  // Cursos normales (un solo archivo)
   archivos.forEach(item => {
-    if (!item.nivel) return;
-    const { tipo, label, f } = item.nivel;
-    if (tipo === 'normal' || tipo === 'intensivo_solo') {
-      const rows = item.parsed.estudiantes.map(est => {
-        const n = calcNotas(est.comp, est.score, f);
-        return {
-          nombrePortal: oxfordAPortal(est.nombreOxford),
-          nombreOxford: normNombre(est.nombreOxford),
-          claveComp:    claveNombre(est.nombreOxford),
-          comp: est.comp, score: est.score, ...n
-        };
-      });
-      // Ordenar alfabéticamente por nombre en formato portal
-      rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
-      cursos.push({
-        titulo: label + (tipo === 'intensivo_solo' ? ' (Intensivo)' : ''),
-        codigo: item.parsed.codigoCurso,
-        rows
-      });
-    }
+    if (errorArchivo(item) || item.nivel.tipo !== 'normal') return;
+    const { label, f } = item.nivel;
+    const codigo = item.parsed.codigoCurso;
+    const rows = item.parsed.estudiantes.map(est =>
+      fila(codigo, est.nombreOxford, { comp: est.comp, score: est.score }, calcNotas(est.comp, est.score, f)));
+    nuevos.push({ titulo: label, codigo, rows: ordenarFilas(rows) });
   });
 
   // Pares intensivos: agrupar por código de curso para no mezclar secciones
-  const intensivosPorCurso = {};
-  archivos.forEach(a => {
-    if (a.nivel && a.parsed && (a.nivel.tipo === 'intensivo_par' || a.nivel.tipo === 'par_unico')) {
-      const cod = a.parsed.codigoCurso;
-      (intensivosPorCurso[cod] = intensivosPorCurso[cod] || []).push(a);
-    }
-  });
-
-  Object.entries(intensivosPorCurso).forEach(([codigo, items]) => {
+  Object.entries(agruparIntensivos()).forEach(([codigo, items]) => {
     PARES.forEach(par => {
       const itemA = items.find(a => a.nivel.grupo === par.a);
       const itemB = items.find(a => a.nivel.grupo === par.b);
       if (!itemA || !itemB) return;
+      const [libA, libB] = nombresLibros(par);
 
-      const mapB = {};
-      itemB.parsed.estudiantes.forEach(e => {
-        mapB[claveNombre(e.nombreOxford)] = e;
-      });
-
+      const mapB = new Map(itemB.parsed.estudiantes.map(e => [claveNombre(e.nombreOxford), e]));
+      const usadosB = new Set();
       const rows = [];
+
+      const agregar = (eA, eB) => {
+        const compA  = eA ? eA.comp  : 0, compB  = eB ? eB.comp  : 0;
+        const scoreA = eA ? eA.score : 0, scoreB = eB ? eB.score : 0;
+        const comp  = compA + compB;          // completion: SUMA (criterio de jefatura, no es bug)
+        const score = (scoreA + scoreB) / 2;  // score: PROMEDIO (corrección oficial Duoc)
+        rows.push(fila(codigo, (eA || eB).nombreOxford,
+          { comp, score, compA, compB, scoreA, scoreB, faltaEn: !eA ? libA : !eB ? libB : null },
+          calcNotas(comp, score, par.f)));
+      };
+
       itemA.parsed.estudiantes.forEach(eA => {
-        const eB = mapB[claveNombre(eA.nombreOxford)];
-        const compT  = eA.comp  + (eB ? eB.comp  : 0);
-        const scoreProm = (eA.score + (eB ? eB.score : 0)) / 2;
-        const n = calcNotas(compT, scoreProm, par.f);
-        rows.push({
-          nombrePortal: oxfordAPortal(eA.nombreOxford),
-          nombreOxford: normNombre(eA.nombreOxford),
-          claveComp:    claveNombre(eA.nombreOxford),
-          comp:  `${eA.comp.toFixed(1)}%+${(eB?eB.comp:0).toFixed(1)}%`,
-          score: `${eA.score.toFixed(1)}%+${(eB?eB.score:0).toFixed(1)}%`,
-          ...n
-        });
+        const k  = claveNombre(eA.nombreOxford);
+        const eB = mapB.get(k);
+        if (eB) usadosB.add(k);
+        agregar(eA, eB);
       });
-      rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
-      cursos.push({
-        titulo: par.label,
-        codigo: codigo,
-        esPar: true,
-        rows
+      // Estudiantes que solo aparecen en el segundo libro: no deben perderse
+      itemB.parsed.estudiantes.forEach(eB => {
+        if (!usadosB.has(claveNombre(eB.nombreOxford))) agregar(null, eB);
       });
+
+      nuevos.push({ titulo: par.label, codigo, esPar: true, libA, libB, rows: ordenarFilas(rows) });
     });
   });
 
-  if (!cursos.length || cursos.every(c => !c.rows.length)) {
+  if (!nuevos.length || nuevos.every(c => !c.rows.length)) {
     document.getElementById('msgs').innerHTML =
       `<div class="msg warn">⚠️ No se encontraron estudiantes. Verifica que los archivos CSV sean los correctos.</div>`;
     return;
   }
 
-  window._cursos = cursos;
-  renderResultados(cursos);
+  nuevos.sort((a, b) => a.codigo.localeCompare(b.codigo) || a.titulo.localeCompare(b.titulo, 'es'));
+  cursos = nuevos;
+  const results = document.getElementById('results');
+  results.classList.remove('stale');
+  renderResultados();
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function col(n) { return n >= 4 ? 'gn' : n >= 3 ? 'an' : 'rn'; }
+const p1 = n => n.toFixed(1);
 
-// Editar nombre inline: actualiza el dato, reordena y re-renderiza
-function actualizarNombre(celda) {
-  const ci = +celda.dataset.ci;
-  const ri = +celda.dataset.ri;
+// Filas de la tabla de un curso (se usa también para re-dibujar solo el tbody al editar)
+function filasHtml(curso, ci) {
+  const ok = curso.rows.filter(r => r.nf >= 4).length;
+  return curso.rows.map((r, i) => {
+    const esSinAct = r.comp === 0 && r.score === 0;
+    const tags = (r.faltaEn ? `<span class="tag warn" title="Este estudiante no aparece en el CSV del ${esc(r.faltaEn)}; se usó 0% para ese libro">⚠ no está en ${esc(r.faltaEn)}</span>` : '')
+               + (esSinAct ? `<span class="tag muted">sin actividad</span>` : '');
+    return `<tr class="${r.nf < 4 ? 'bajo' : 'ok'}">
+    <td class="num">${i + 1}</td>
+    <td class="nm"><span class="nm-edit" contenteditable="true" spellcheck="false" role="textbox"
+        aria-label="Nombre del estudiante, editable"
+        data-ci="${ci}" data-ri="${i}" data-k="${esc(r.claveComp)}"
+        title="Haz clic para corregir el nombre. Al salir del campo, se reordenará.">${esc(r.nombrePortal)}</span>${tags}</td>
+    ${curso.esPar
+      ? `<td class="mn"><span class="pct">${p1(r.comp)}%</span><span class="sub">${p1(r.compA)} + ${p1(r.compB)}</span></td>
+         <td class="mn"><span class="pct">${p1(r.score)}%</span><span class="sub">(${p1(r.scoreA)} + ${p1(r.scoreB)}) ÷ 2</span></td>`
+      : `<td class="mn">${p1(r.comp)}%</td><td class="mn">${p1(r.score)}%</td>`}
+    <td class="nt detail ${col(r.nc)}">${p1(r.nc)}</td>
+    <td class="nt detail ${col(r.ns)}">${p1(r.ns)}</td>
+    <td class="nf nf-highlight ${col(r.nf)}" aria-label="Nota final ${p1(r.nf)}${r.nf < 4 ? ', bajo 4.0' : ''}">${p1(r.nf)}</td>
+  </tr>`; }).join('')
+  + (ok === curso.rows.length ? `<tr class="vacio"><td colspan="7">✅ Todos los estudiantes de este curso tienen 4.0 o más.</td></tr>` : '');
+}
+
+// Editar nombre inline: actualiza el dato, guarda la corrección y reordena.
+// Solo se re-dibuja el tbody del curso, para que un clic en "Copiar"/"Exportar"
+// hecho mientras se edita no se pierda; si el foco iba hacia otro nombre
+// (clic o Tab), se le devuelve tras reordenar.
+function actualizarNombre(celda, destino) {
+  const ci    = +celda.dataset.ci;
+  const curso = cursos[ci];
+  const row   = curso.rows[+celda.dataset.ri];
   const nuevo = celda.textContent.trim().toUpperCase().replace(/\s+/g, ' ');
 
-  const curso = window._cursos[ci];
-  if (!nuevo || curso.rows[ri].nombrePortal === nuevo) {
-    celda.textContent = curso.rows[ri].nombrePortal; // sin cambios reales
+  if (!nuevo || row.nombrePortal === nuevo) {
+    celda.textContent = row.nombrePortal; // sin cambios reales
     return;
   }
 
-  curso.rows[ri].nombrePortal = nuevo;
-  curso.rows.sort((a, b) => a.nombrePortal.localeCompare(b.nombrePortal, 'es'));
-  renderResultados(window._cursos);
+  row.nombrePortal = nuevo;
+  correcciones[curso.codigo + '|' + row.claveComp] = nuevo;
+  ordenarFilas(curso.rows);
+
+  const tb = document.getElementById('tb-' + ci);
+  const destinoEnTabla = destino && destino.classList && destino.classList.contains('nm-edit') && tb.contains(destino);
+  const kDestino = destinoEnTabla ? destino.dataset.k : null;
+  tb.innerHTML = filasHtml(curso, ci);
+  if (kDestino !== null) {
+    const nuevoDestino = [...tb.querySelectorAll('.nm-edit')].find(el => el.dataset.k === kDestino);
+    if (nuevoDestino) nuevoDestino.focus();
+  }
 }
 
-function renderResultados(cursos) {
+function renderResultados() {
   const container = document.getElementById('results');
+  // Conservar la posición de scroll interna de cada tabla al re-renderizar
+  const scrolls = [...container.querySelectorAll('.tw')].map(t => t.scrollTop);
   let html = '<hr class="div">';
 
-  html += `<div class="aviso-info">
-    <div class="aviso-icon">✎</div>
-    <div class="aviso-body">
-      <div class="aviso-title">Los nombres se ordenan automáticamente como en el portal de calificaciones</div>
-      <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre. <strong>Haz clic sobre cualquier nombre para corregirlo</strong> y la fila se reordenará sola.</div>
-    </div>
-  </div>`;
+  html += `<details class="aviso aviso-info" data-pref="avisoNombres" open>
+    <summary>
+      <span class="aviso-icon">✎</span>
+      <span class="aviso-title">Los nombres se ordenan como en el portal de calificaciones — haz clic en un nombre para corregirlo</span>
+    </summary>
+    <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre. <strong>Haz clic sobre cualquier nombre para corregirlo</strong> y la fila se reordenará sola. Las correcciones se mantienen aunque vuelvas a calcular.</div>
+  </details>`;
 
-  // Barra resumen global si hay más de 1 curso
-  if (cursos.length > 1) {
-    const total  = cursos.reduce((s,c) => s + c.rows.length, 0);
-    const sobre4 = cursos.reduce((s,c) => s + c.rows.filter(r => r.nf >= 4).length, 0);
-    html += `<div class="global-bar">
+  // Barra superior: resumen global (si hay más de 1 curso) + controles
+  const total  = cursos.reduce((s,c) => s + c.rows.length, 0);
+  const sobre4 = cursos.reduce((s,c) => s + c.rows.filter(r => r.nf >= 4).length, 0);
+  html += `<div class="global-bar">
+    ${cursos.length > 1 ? `
       <span class="gb-label">Resumen global:</span>
       <span class="gb-stat" style="color:var(--navy)">${total} estudiantes</span>
       <span class="gb-label">·</span>
-      <span class="gb-stat" style="color:var(--green)">${sobre4} sobre 4.0</span>
+      <span class="gb-stat" style="color:var(--green)">${sobre4} con 4.0 o más</span>
       <span class="gb-label">·</span>
-      <span class="gb-stat" style="color:var(--red)">${total - sobre4} bajo 4.0</span>
-      <div style="margin-left:auto">
-        <button class="btn-exp" onclick="exportarTodo()">⬇ Exportar todo</button>
-      </div>
-    </div>`;
-  }
+      <span class="gb-stat" style="color:var(--red)">${total - sobre4} bajo 4.0</span>` : ''}
+    <div class="gb-controls">
+      <label><input type="checkbox" id="soloBajo" ${prefs.soloBajo ? 'checked' : ''}> Mostrar solo bajo 4.0</label>
+      <label>Decimales al copiar/exportar:
+        <select id="decimal">
+          <option value="coma"  ${prefs.decimal === 'coma'  ? 'selected' : ''}>Coma (4,5)</option>
+          <option value="punto" ${prefs.decimal === 'punto' ? 'selected' : ''}>Punto (4.5)</option>
+        </select>
+      </label>
+      <button class="btn-print" data-act="imprimir" title="Imprimir o guardar como PDF (respeta el filtro «solo bajo 4.0»)">🖨 Imprimir</button>
+      ${cursos.length > 1 ? `<button class="btn-exp" data-act="exp-todo">⬇ Exportar todo</button>` : ''}
+    </div>
+  </div>`;
 
   cursos.forEach((curso, ci) => {
-    const total  = curso.rows.length;
-    const sobre4 = curso.rows.filter(r => r.nf >= 4).length;
-    const prom   = total ? curso.rows.reduce((s,r) => s + r.nf, 0) / total : 0;
+    const n       = curso.rows.length;
+    const ok      = curso.rows.filter(r => r.nf >= 4).length;
+    const prom    = n ? curso.rows.reduce((s,r) => s + r.nf, 0) / n : 0;
+    const sinAct  = curso.rows.filter(r => r.comp === 0 && r.score === 0).length;
+    const faltan  = curso.rows.filter(r => r.faltaEn);
 
     html += `<div class="curso-section">
       <div class="curso-header">
         <div class="curso-header-left">
           <div>
-            <div class="curso-title">${curso.titulo}</div>
-            <div class="curso-sub">${curso.codigo}</div>
+            <div class="curso-title">${esc(curso.titulo)}</div>
+            <div class="curso-sub">${esc(curso.codigo)}</div>
           </div>
         </div>
         <div class="curso-actions">
-          <button class="btn-exp" onclick="exportarCurso(${ci})">⬇ Exportar</button>
+          <button class="btn-sec" data-act="copiar" data-ci="${ci}" title="Copia la columna Nota Final en el orden del portal, lista para pegar">📋 Copiar notas</button>
+          <button class="btn-exp" data-act="exp-curso" data-ci="${ci}">⬇ Exportar</button>
         </div>
       </div>
+      ${faltan.length ? `<div class="curso-alerta">⚠️ ${faltan.length} estudiante${faltan.length > 1 ? 's aparecen' : ' aparece'} en un solo libro (marcado${faltan.length > 1 ? 's' : ''} en la tabla). Para el libro que falta se usó 0%. Revisa si está inscrito con otro nombre en Oxford.</div>` : ''}
       <div class="mini-stats">
-        <div class="ms"><div class="ms-l">Estudiantes</div><div class="ms-v" style="color:var(--navy)">${total}</div></div>
-        <div class="ms"><div class="ms-l">Sobre 4.0</div><div class="ms-v" style="color:var(--green)">${sobre4}</div></div>
-        <div class="ms"><div class="ms-l">Bajo 4.0</div><div class="ms-v" style="color:var(--red)">${total - sobre4}</div></div>
-        <div class="ms"><div class="ms-l">Promedio</div><div class="ms-v" style="color:var(--blue)">${prom.toFixed(1)}</div></div>
+        <div class="ms"><div class="ms-l">Estudiantes</div><div class="ms-v" style="color:var(--navy)">${n}</div></div>
+        <div class="ms"><div class="ms-l">4.0 o más</div><div class="ms-v" style="color:var(--green)">${ok}</div></div>
+        <div class="ms"><div class="ms-l">Bajo 4.0</div><div class="ms-v" style="color:var(--red)">${n - ok}</div></div>
+        <div class="ms"><div class="ms-l">Sin actividad</div><div class="ms-v" style="color:var(--g600)">${sinAct}</div></div>
+        <div class="ms"><div class="ms-l">Promedio</div><div class="ms-v" style="color:var(--blue)">${p1(prom)}</div></div>
       </div>
       <div class="tw"><table>
+        <colgroup><col style="width:44px"><col><col style="width:${curso.esPar ? 130 : 100}px"><col style="width:${curso.esPar ? 130 : 100}px"><col style="width:96px"><col style="width:84px"><col style="width:90px"></colgroup>
         <thead><tr>
-          <th>#</th><th>Estudiante (orden portal de calificaciones) <span style="opacity:.6;font-weight:400">✎ editable</span></th>
+          <th>#</th><th>Estudiante <span style="opacity:.6;font-weight:400;text-transform:none">✎ clic para corregir</span></th>
           ${curso.esPar
-            ? `<th>% Completion (Libro A + B)</th><th>% Score (promedio A y B)</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`
-            : `<th>% Completion</th><th>% Score</th><th>N. Completion</th><th>N. Score</th><th>Nota Final</th>`}
+            ? `<th>% Completion<small>suma de ambos libros</small></th><th>% Score<small>promedio de ambos libros</small></th>`
+            : `<th>% Completion</th><th>% Score</th>`}
+          <th>N. Completion</th><th>N. Score</th><th>Nota Final</th>
         </tr></thead>
-        <tbody>${curso.rows.map((r, i) => `<tr>
-          <td class="num">${i + 1}</td>
-          <td class="nm nm-edit" contenteditable="true" spellcheck="false"
-              data-ci="${ci}" data-ri="${i}"
-              onblur="actualizarNombre(this)"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-              title="Haz clic para corregir el nombre. Al salir del campo, se reordenará.">${r.nombrePortal}</td>
-          ${curso.esPar
-            ? `<td class="mn detail">${r.comp}</td><td class="mn detail">${r.score}</td>`
-            : `<td class="mn">${typeof r.comp === 'number' ? r.comp.toFixed(1)+'%' : r.comp}</td><td class="mn">${typeof r.score=== 'number' ? r.score.toFixed(1)+'%': r.score}</td>`}
-          <td class="nt detail ${col(r.nc)}">${r.nc.toFixed(1)}</td>
-          <td class="nt detail ${col(r.ns)}">${r.ns.toFixed(1)}</td>
-          <td class="nf nf-highlight ${col(r.nf)}">${r.nf.toFixed(1)}</td>
-        </tr>`).join('')}</tbody>
+        <tbody id="tb-${ci}">${filasHtml(curso, ci)}</tbody>
       </table></div>
     </div>`;
   });
 
   container.innerHTML = html;
+  container.classList.toggle('solo-bajo', prefs.soloBajo);
+  container.querySelectorAll('.tw').forEach((t, i) => t.scrollTop = scrolls[i] || 0);
+  container.querySelectorAll('details.aviso[data-pref]').forEach(d => {
+    if (lsGet(d.dataset.pref) === 'cerrado') d.open = false;
+    d.addEventListener('toggle', () => lsSet(d.dataset.pref, d.open ? 'abierto' : 'cerrado'));
+  });
 }
 
-// ── EXPORTAR ──────────────────────────────────────────────────────────────────
-function csvDeCurso(curso) {
-  const bom = '\uFEFF';
-  const lineas = [['#','Estudiante','% Completion','% Score','N. Completion','N. Score','Nota Final'].join(','),
-    ...curso.rows.map((r,i) => [
-      i+1, `"${r.nombrePortal}"`,
-      typeof r.comp ==='number'?r.comp.toFixed(1)+'%':r.comp,
-      typeof r.score==='number'?r.score.toFixed(1)+'%':r.score,
-      r.nc.toFixed(1), r.ns.toFixed(1), r.nf.toFixed(1)
-    ].join(','))
+// Eventos de la zona de resultados (delegados, sobreviven a cada re-render)
+const resultsEl = document.getElementById('results');
+resultsEl.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  if (b.dataset.act === 'exp-curso') exportarCurso(+b.dataset.ci);
+  if (b.dataset.act === 'copiar')    copiarNotas(+b.dataset.ci);
+  if (b.dataset.act === 'exp-todo')  exportarTodo();
+  if (b.dataset.act === 'imprimir')  window.print();
+});
+resultsEl.addEventListener('change', e => {
+  if (e.target.id === 'soloBajo') {
+    prefs.soloBajo = e.target.checked;
+    resultsEl.classList.toggle('solo-bajo', prefs.soloBajo);
+  }
+  if (e.target.id === 'decimal') {
+    prefs.decimal = e.target.value;
+    lsSet('decimal', prefs.decimal);
+  }
+});
+resultsEl.addEventListener('focusout', e => {
+  if (e.target.classList && e.target.classList.contains('nm-edit')) actualizarNombre(e.target, e.relatedTarget);
+});
+resultsEl.addEventListener('keydown', e => {
+  if (!e.target.classList || !e.target.classList.contains('nm-edit')) return;
+  if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+  if (e.key === 'Escape') {
+    const row = cursos[+e.target.dataset.ci].rows[+e.target.dataset.ri];
+    e.target.textContent = row.nombrePortal;
+    e.target.blur();
+  }
+});
+
+// ── COPIAR / EXPORTAR ─────────────────────────────────────────────────────────
+// Números según la preferencia de decimales (Excel en configuración chilena usa coma)
+const fmt  = n => prefs.decimal === 'coma' ? n.toFixed(1).replace('.', ',') : n.toFixed(1);
+const fmtP = n => fmt(n) + '%';
+const sepCsv = () => prefs.decimal === 'coma' ? ';' : ',';
+const celda  = v => typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : v;
+
+async function copiarNotas(ci) {
+  const curso = cursos[ci];
+  const texto = curso.rows.map(r => fmt(r.nf)).join('\n');
+  let ok = false;
+  try { await navigator.clipboard.writeText(texto); ok = true; } catch {}
+  if (!ok) {
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+  }
+  toast(ok
+    ? `${curso.rows.length} notas copiadas (${curso.codigo}), en el orden del portal. Pégalas en la columna de notas.`
+    : 'No se pudo copiar al portapapeles. Usa Exportar.');
+}
+
+function lineasCsv(curso) {
+  const sep = sepCsv();
+  const enc = ['#','Estudiante','% Completion','% Score','N. Completion','N. Score','Nota Final'];
+  if (curso.esPar) enc.push(`% Completion ${curso.libA}`, `% Completion ${curso.libB}`,
+                            `% Score ${curso.libA}`, `% Score ${curso.libB}`, 'Observación');
+  return [enc.map(celda).join(sep),
+    ...curso.rows.map((r, i) => {
+      const c = [i + 1, r.nombrePortal, fmtP(r.comp), fmtP(r.score), fmt(r.nc), fmt(r.ns), fmt(r.nf)];
+      if (curso.esPar) c.push(fmtP(r.compA), fmtP(r.compB), fmtP(r.scoreA), fmtP(r.scoreB),
+                              r.faltaEn ? `No está en ${r.faltaEn} (se usó 0%)` : '');
+      return c.map(celda).join(sep);
+    })
   ].join('\n');
-  return bom + lineas;
 }
 
 function descargar(contenido, nombre) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([contenido], {type:'text/csv;charset=utf-8'}));
+  a.href = URL.createObjectURL(new Blob(['﻿' + contenido], {type:'text/csv;charset=utf-8'}));
   a.download = nombre;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+const hoy = () => new Date().toISOString().slice(0,10);
+
 function exportarCurso(ci) {
-  const curso = window._cursos[ci];
-  descargar(csvDeCurso(curso), `notas_${curso.codigo}_${new Date().toISOString().slice(0,10)}.csv`);
+  const curso = cursos[ci];
+  descargar(lineasCsv(curso), `notas_${curso.codigo}_${hoy()}.csv`);
 }
 
 function exportarTodo() {
-  const bom = '\uFEFF';
-  const partes = window._cursos.map(c => {
-    const header = `"=== ${c.titulo} — ${c.codigo} ==="\n`;
-    const lineas = ['#,Estudiante,% Completion,% Score,N. Completion,N. Score,Nota Final',
-      ...c.rows.map((r,i) => [
-        i+1,`"${r.nombrePortal}"`,
-        typeof r.comp==='number'?r.comp.toFixed(1)+'%':r.comp,
-        typeof r.score==='number'?r.score.toFixed(1)+'%':r.score,
-        r.nc.toFixed(1),r.ns.toFixed(1),r.nf.toFixed(1)
-      ].join(','))
-    ].join('\n');
-    return header + lineas;
-  });
-  descargar(bom + partes.join('\n\n'), `notas_todos_${new Date().toISOString().slice(0,10)}.csv`);
+  // El título no puede empezar con "=" o Excel lo intenta evaluar como fórmula
+  const partes = cursos.map(c => celda(`Curso: ${c.titulo} — ${c.codigo}`) + '\n' + lineasCsv(c));
+  descargar(partes.join('\n\n'), `notas_todos_${hoy()}.csv`);
 }
 </script>
 </body>
