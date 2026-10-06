@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora E-book · Duoc UC</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233B82F6'/%3E%3Cpath d='M32 19c-5-4-12-5-19-4v30c7-1 14 0 19 4 5-4 12-5 19-4V15c-7-1-14 0-19 4z' fill='%23fff'/%3E%3Cpath d='M32 19v30' stroke='%233B82F6' stroke-width='3'/%3E%3C/svg%3E">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -91,10 +92,12 @@
   .curso-title { font-size:14px;font-weight:600; }
   .curso-sub   { font-size:11px;color:#94A3B8;margin-top:2px; }
   .curso-actions { display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
-  .btn-exp { display:flex;align-items:center;gap:5px;background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.2s;white-space:nowrap; }
-  .btn-exp:hover { background:#15803D; }
-  .btn-sec { display:flex;align-items:center;gap:5px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:.2s;white-space:nowrap; }
-  .btn-sec:hover { background:rgba(255,255,255,.1);border-color:#fff; }
+  /* Avance de ingreso al portal */
+  .curso-prog { font-size:12px;color:#CBD5E1;font-family:var(--mono);white-space:nowrap; }
+  .curso-prog strong { color:#fff; }
+  .curso-prog.listo strong { color:#86EFAC; }
+  .btn-link-w { background:none;border:none;color:#94A3B8;font:inherit;font-size:11px;text-decoration:underline;cursor:pointer;padding:2px; }
+  .btn-link-w:hover { color:#fff; }
   .curso-alerta { background:var(--amber-bg);border:1px solid #FCD34D;border-top:none;color:#92400E;font-size:12px;padding:8px 14px; }
 
   /* MINI STATS */
@@ -134,6 +137,21 @@
   .tag { display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap; }
   .tag.warn  { background:var(--amber-bg);color:#92400E;border:1px solid #FCD34D; }
   .tag.muted { background:var(--g100);color:var(--g600);border:1px solid var(--g200); }
+  /* Cambiar apellidos (⇄) */
+  .btn-swap { background:none;border:1px solid transparent;border-radius:4px;color:var(--g400);cursor:pointer;font-size:12px;padding:0 4px;margin-left:4px;line-height:1.4;vertical-align:1px;font-family:var(--sans); }
+  .btn-swap:hover, .btn-swap:focus-visible { color:var(--sky);border-color:#BFDBFE;background:var(--ice);outline:none; }
+  /* Marcar nota como ingresada en el portal */
+  td.chk { text-align:center;padding:4px; }
+  .btn-chk { width:28px;height:28px;border-radius:50%;border:1.5px solid var(--g200);background:#fff;color:transparent;cursor:pointer;font-size:14px;font-weight:700;line-height:1; }
+  .btn-chk:hover { border-color:var(--green);color:var(--g400); }
+  .btn-chk[aria-pressed="true"] { background:var(--green);border-color:var(--green);color:#fff; }
+  .btn-chk:focus-visible { outline:2px solid var(--sky);outline-offset:2px; }
+  tr.hecho td:not(.chk) { opacity:.4; }
+  tr.actual td { background:#FFF4CC !important; }
+  tr.actual td.nm { font-weight:700; }
+  /* Vista compacta: solo nombre y nota, para trabajar junto al portal */
+  table.compacta { min-width:0; }
+  table.compacta td.nf { font-size:20px; }
   tr.vacio { display:none; }
   tr.vacio td { text-align:center;color:var(--g600);font-size:12px;padding:16px; }
   #results.solo-bajo tr.ok { display:none; }
@@ -222,6 +240,10 @@
     tr { break-inside:avoid; }
     tbody tr:hover td { background:inherit; }
     .nm-edit { box-shadow:none !important; background:none !important; }
+    .btn-swap, td.chk, th.chk { display:none; }
+    col.c-chk { width:0; }
+    tr.hecho td:not(.chk) { opacity:1; }
+    tr.actual td { background:inherit !important; font-weight:inherit; }
   }
 </style>
 </head>
@@ -385,6 +407,15 @@ function oxfordAPortal(nombre) {
   return [...apellidos, ...nombres].join(' ');
 }
 
+// Alternativas de orden para el botón ⇄: con 1 apellido o con 2 apellidos.
+// Resuelve el caso ambiguo de la heurística (3 palabras: ¿2 nombres + 1
+// apellido, o 1 nombre + 2 apellidos?) sin obligar a reescribir el nombre.
+function variantesPortal(nombre) {
+  const unidades = agruparUnidades(normNombre(nombre).split(' '));
+  if (unidades.length < 3) return [];
+  return [1, 2].map(k => [...unidades.slice(-k), ...unidades.slice(0, -k)].join(' '));
+}
+
 // Clave de comparación: palabras ordenadas alfabéticamente
 function claveNombre(s) {
   return normNombre(s).split(' ').sort().join(' ');
@@ -472,11 +503,16 @@ function errorArchivo(item) {
 // ── ESTADO ───────────────────────────────────────────────────────────────────
 let archivos = [];
 let cursos   = null;          // resultados del último cálculo
+function lsJson(k) { try { return JSON.parse(lsGet(k)) || {}; } catch { return {}; } }
+const guardar = (k, obj) => lsSet(k, JSON.stringify(obj));
 // Correcciones manuales de nombres: "codigoCurso|claveNombre" → nombre portal.
-// Se conservan al recalcular para no perder lo que el docente ya corrigió.
-const correcciones = {};
+// Se guardan en el navegador: sobreviven a recalcular y a cerrar la página.
+const correcciones = lsJson('correcciones');
+// Notas ya ingresadas al portal: "codigoCurso|claveNombre" → nota final marcada.
+// Si la nota cambia (CSV nuevo), la marca deja de valer sola.
+const ingresadas = lsJson('ingresadas');
 const prefs = {
-  decimal:  lsGet('decimal') === 'punto' ? 'punto' : 'coma',
+  compacta: lsGet('compacta') === '1',
   soloBajo: false,
 };
 
@@ -712,7 +748,7 @@ function fila(codigo, nombreOxford, datos, notas) {
   const claveComp = claveNombre(nombreOxford);
   return {
     nombrePortal: correcciones[codigo + '|' + claveComp] || oxfordAPortal(nombreOxford),
-    claveComp, ...datos, ...notas
+    nombreOxford, claveComp, ...datos, ...notas
   };
 }
 
@@ -787,34 +823,71 @@ function calcular() {
 function col(n) { return n >= 4 ? 'gn' : n >= 3 ? 'an' : 'rn'; }
 const p1 = n => n.toFixed(1);
 
-// Filas de la tabla de un curso (se usa también para re-dibujar solo el tbody al editar)
+// Clave de un estudiante dentro de un curso (correcciones e ingresadas)
+const claveFila = (curso, r) => curso.codigo + '|' + r.claveComp;
+const estaIngresada = (curso, r) => ingresadas[claveFila(curso, r)] === r.nf;
+
+// Filas de la tabla de un curso (se usa también para re-dibujar solo el tbody)
 function filasHtml(curso, ci) {
   const ok = curso.rows.filter(r => r.nf >= 4).length;
+  const compacta = prefs.compacta;
+  // Fila "actual": la primera aún no ingresada, para no perderse al alternar con el portal
+  const iActual = curso.rows.findIndex(r => !estaIngresada(curso, r));
   return curso.rows.map((r, i) => {
+    const hecho    = estaIngresada(curso, r);
     const esSinAct = r.comp === 0 && r.score === 0;
     const tags = (r.faltaEn ? `<span class="tag warn" title="Este estudiante no aparece en el CSV del ${esc(r.faltaEn)}; se usó 0% para ese libro">⚠ no está en ${esc(r.faltaEn)}</span>` : '')
                + (esSinAct ? `<span class="tag muted">sin actividad</span>` : '');
-    return `<tr class="${r.nf < 4 ? 'bajo' : 'ok'}">
+    const vars  = variantesPortal(r.nombreOxford);
+    const otra  = vars.length ? vars[(vars.indexOf(r.nombrePortal) + 1) % vars.length] : '';
+    const swap  = otra ? `<button class="btn-swap" data-act="swap" data-ci="${ci}" data-k="${esc(r.claveComp)}"
+        title="Cambiar apellidos → ${esc(otra)}" aria-label="Cambiar apellidos a ${esc(otra)}">⇄</button>` : '';
+    const clases = [r.nf < 4 ? 'bajo' : 'ok', hecho ? 'hecho' : '', i === iActual ? 'actual' : ''].join(' ');
+    return `<tr class="${clases}">
     <td class="num">${i + 1}</td>
     <td class="nm"><span class="nm-edit" contenteditable="true" spellcheck="false" role="textbox"
         aria-label="Nombre del estudiante, editable"
         data-ci="${ci}" data-ri="${i}" data-k="${esc(r.claveComp)}"
-        title="Haz clic para corregir el nombre. Al salir del campo, se reordenará.">${esc(r.nombrePortal)}</span>${tags}</td>
-    ${curso.esPar
+        title="En Oxford: ${esc(r.nombreOxford)} — haz clic para corregir">${esc(r.nombrePortal)}</span>${swap}${tags}</td>
+    ${compacta ? '' : (curso.esPar
       ? `<td class="mn"><span class="pct">${p1(r.comp)}%</span><span class="sub">${p1(r.compA)} + ${p1(r.compB)}</span></td>
          <td class="mn"><span class="pct">${p1(r.score)}%</span><span class="sub">(${p1(r.scoreA)} + ${p1(r.scoreB)}) ÷ 2</span></td>`
-      : `<td class="mn">${p1(r.comp)}%</td><td class="mn">${p1(r.score)}%</td>`}
-    <td class="nt detail ${col(r.nc)}">${p1(r.nc)}</td>
-    <td class="nt detail ${col(r.ns)}">${p1(r.ns)}</td>
+      : `<td class="mn">${p1(r.comp)}%</td><td class="mn">${p1(r.score)}%</td>`)
+      + `<td class="nt detail ${col(r.nc)}">${p1(r.nc)}</td>
+         <td class="nt detail ${col(r.ns)}">${p1(r.ns)}</td>`}
     <td class="nf nf-highlight ${col(r.nf)}" aria-label="Nota final ${p1(r.nf)}${r.nf < 4 ? ', bajo 4.0' : ''}">${p1(r.nf)}</td>
+    <td class="chk"><button class="btn-chk" data-act="marcar" data-ci="${ci}" data-k="${esc(r.claveComp)}"
+        aria-pressed="${hecho}" title="${hecho ? 'Desmarcar' : 'Marcar como ingresada en el portal'}"
+        aria-label="${hecho ? 'Ingresada' : 'Marcar como ingresada'}: ${esc(r.nombrePortal)}">✓</button></td>
   </tr>`; }).join('')
-  + (ok === curso.rows.length ? `<tr class="vacio"><td colspan="7">✅ Todos los estudiantes de este curso tienen 4.0 o más.</td></tr>` : '');
+  + (ok === curso.rows.length ? `<tr class="vacio"><td colspan="${compacta ? 4 : 8}">✅ Todos los estudiantes de este curso tienen 4.0 o más.</td></tr>` : '');
 }
 
-// Editar nombre inline: actualiza el dato, guarda la corrección y reordena.
-// Solo se re-dibuja el tbody del curso, para que un clic en "Copiar"/"Exportar"
-// hecho mientras se edita no se pierda; si el foco iba hacia otro nombre
-// (clic o Tab), se le devuelve tras reordenar.
+function progresoHtml(curso, ci) {
+  const n = curso.rows.length;
+  const hechas = curso.rows.filter(r => estaIngresada(curso, r)).length;
+  return `<span class="curso-prog${hechas === n ? ' listo' : ''}">✓ <strong>${hechas} / ${n}</strong> ingresadas</span>
+    ${hechas ? `<button class="btn-link-w" data-act="reiniciar" data-ci="${ci}" title="Quitar todas las marcas de este curso">reiniciar</button>` : ''}`;
+}
+
+// Re-dibuja solo el tbody y el avance de un curso. Si el foco iba hacia un
+// elemento de esa tabla (otro nombre, un ✓, un ⇄), se le devuelve tras
+// reordenar; si era un botón, se ejecuta el clic que se habría perdido.
+function redibujarCurso(ci, destino) {
+  const curso = cursos[ci];
+  const tb = document.getElementById('tb-' + ci);
+  const enTabla = destino && destino.dataset && destino.dataset.k !== undefined && tb.contains(destino);
+  const ref = enTabla ? { k: destino.dataset.k, act: destino.dataset.act, edit: destino.classList.contains('nm-edit') } : null;
+  tb.innerHTML = filasHtml(curso, ci);
+  document.getElementById('prog-' + ci).innerHTML = progresoHtml(curso, ci);
+  if (!ref) return;
+  const nuevo = [...tb.querySelectorAll('[data-k]')].find(el =>
+    el.dataset.k === ref.k && (ref.edit ? el.classList.contains('nm-edit') : el.dataset.act === ref.act));
+  if (!nuevo) return;
+  if (ref.edit) nuevo.focus(); else nuevo.click();
+}
+
+// Editar nombre inline: actualiza el dato, guarda la corrección y reordena
 function actualizarNombre(celda, destino) {
   const ci    = +celda.dataset.ci;
   const curso = cursos[ci];
@@ -825,33 +898,72 @@ function actualizarNombre(celda, destino) {
     celda.textContent = row.nombrePortal; // sin cambios reales
     return;
   }
+  cambiarNombre(curso, row, nuevo);
+  redibujarCurso(ci, destino);
+}
 
+function cambiarNombre(curso, row, nuevo) {
   row.nombrePortal = nuevo;
-  correcciones[curso.codigo + '|' + row.claveComp] = nuevo;
+  // Si vuelve a ser el automático, no hace falta guardar corrección
+  if (nuevo === oxfordAPortal(row.nombreOxford)) delete correcciones[claveFila(curso, row)];
+  else correcciones[claveFila(curso, row)] = nuevo;
+  guardar('correcciones', correcciones);
   ordenarFilas(curso.rows);
+}
 
+const filaPorClave = (curso, k) => curso.rows.find(r => r.claveComp === k);
+
+function alternarApellidos(ci, k) {
+  const curso = cursos[ci];
+  const row   = filaPorClave(curso, k);
+  const vars  = variantesPortal(row.nombreOxford);
+  cambiarNombre(curso, row, vars[(vars.indexOf(row.nombrePortal) + 1) % vars.length]);
+  redibujarCurso(ci);
+  // Mantener el foco en el ⇄ de ese estudiante (puede haber cambiado de posición)
+  const b = [...document.querySelectorAll(`#tb-${ci} .btn-swap`)].find(el => el.dataset.k === k);
+  if (b) { b.focus(); b.closest('tr').scrollIntoView({ block: 'nearest' }); }
+}
+
+function marcar(ci, k) {
+  const curso = cursos[ci];
+  const row   = filaPorClave(curso, k);
+  const key   = claveFila(curso, row);
+  const ahora = !estaIngresada(curso, row);
+  if (ahora) ingresadas[key] = row.nf; else delete ingresadas[key];
+  guardar('ingresadas', ingresadas);
+  redibujarCurso(ci);
+  // Al marcar, el foco pasa a la siguiente pendiente: con Espacio se avanza fila a fila
   const tb = document.getElementById('tb-' + ci);
-  const destinoEnTabla = destino && destino.classList && destino.classList.contains('nm-edit') && tb.contains(destino);
-  const kDestino = destinoEnTabla ? destino.dataset.k : null;
-  tb.innerHTML = filasHtml(curso, ci);
-  if (kDestino !== null) {
-    const nuevoDestino = [...tb.querySelectorAll('.nm-edit')].find(el => el.dataset.k === kDestino);
-    if (nuevoDestino) nuevoDestino.focus();
-  }
+  const sig = ahora
+    ? tb.querySelector('tr.actual .btn-chk')
+    : [...tb.querySelectorAll('.btn-chk')].find(el => el.dataset.k === k);
+  if (sig) { sig.focus(); sig.closest('tr').scrollIntoView({ block: 'nearest' }); }
+}
+
+function reiniciarMarcas(ci) {
+  const curso = cursos[ci];
+  curso.rows.forEach(r => delete ingresadas[claveFila(curso, r)]);
+  guardar('ingresadas', ingresadas);
+  redibujarCurso(ci);
 }
 
 function renderResultados() {
   const container = document.getElementById('results');
   // Conservar la posición de scroll interna de cada tabla al re-renderizar
   const scrolls = [...container.querySelectorAll('.tw')].map(t => t.scrollTop);
+  const compacta = prefs.compacta;
   let html = '<hr class="div">';
 
   html += `<details class="aviso aviso-info" data-pref="avisoNombres" open>
     <summary>
       <span class="aviso-icon">✎</span>
-      <span class="aviso-title">Los nombres se ordenan como en el portal de calificaciones — haz clic en un nombre para corregirlo</span>
+      <span class="aviso-title">Revisa los nombres: deben quedar como en el portal (apellido paterno primero) para que el orden coincida</span>
     </summary>
-    <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre. <strong>Haz clic sobre cualquier nombre para corregirlo</strong> y la fila se reordenará sola. Las correcciones se mantienen aunque vuelvas a calcular.</div>
+    <div class="aviso-text">El orden de los nombres se convierte automáticamente al formato del portal de calificaciones (Apellido Nombre), pero puede no ser exacto en todos los casos: nombres compuestos, apellidos extranjeros, o estudiantes con solo 3 palabras en Oxford donde la calculadora podría confundir el primer apellido con un segundo nombre.
+      <br>• Usa el botón <strong>⇄</strong> junto al nombre para alternar entre <em>1 apellido</em> y <em>2 apellidos</em>.
+      <br>• Para otros casos, <strong>haz clic sobre el nombre y corrígelo</strong>. La fila se reordena sola.
+      <br>• Al ingresar las notas en el portal, marca cada una con <strong>✓</strong> (o presiona Espacio para marcar y pasar a la siguiente). La fila destacada en amarillo es la que sigue.
+      <br>Las correcciones y las marcas quedan guardadas en este navegador.</div>
   </details>`;
 
   // Barra superior: resumen global (si hay más de 1 curso) + controles
@@ -866,15 +978,11 @@ function renderResultados() {
       <span class="gb-label">·</span>
       <span class="gb-stat" style="color:var(--red)">${total - sobre4} bajo 4.0</span>` : ''}
     <div class="gb-controls">
-      <label><input type="checkbox" id="soloBajo" ${prefs.soloBajo ? 'checked' : ''}> Mostrar solo bajo 4.0</label>
-      <label>Decimales al copiar/exportar:
-        <select id="decimal">
-          <option value="coma"  ${prefs.decimal === 'coma'  ? 'selected' : ''}>Coma (4,5)</option>
-          <option value="punto" ${prefs.decimal === 'punto' ? 'selected' : ''}>Punto (4.5)</option>
-        </select>
-      </label>
-      <button class="btn-print" data-act="imprimir" title="Imprimir o guardar como PDF (respeta el filtro «solo bajo 4.0»)">🖨 Imprimir</button>
-      ${cursos.length > 1 ? `<button class="btn-exp" data-act="exp-todo">⬇ Exportar todo</button>` : ''}
+      <label><input type="checkbox" id="soloBajo" ${prefs.soloBajo ? 'checked' : ''}> Solo bajo 4.0</label>
+      <label title="Muestra solo nombre y nota final, para tener la calculadora junto al portal"><input type="checkbox" id="compacta" ${compacta ? 'checked' : ''}> Vista compacta</label>
+      <span class="gb-label">Respaldo:</span>
+      <button class="btn-print" data-act="exportar" title="Descargar un CSV para Excel con ${cursos.length > 1 ? 'todos los cursos' : 'el curso'}">⬇ Excel</button>
+      <button class="btn-print" data-act="imprimir" title="Imprimir o guardar como PDF (respeta el filtro «solo bajo 4.0»)">🖨 PDF</button>
     </div>
   </div>`;
 
@@ -884,6 +992,7 @@ function renderResultados() {
     const prom    = n ? curso.rows.reduce((s,r) => s + r.nf, 0) / n : 0;
     const sinAct  = curso.rows.filter(r => r.comp === 0 && r.score === 0).length;
     const faltan  = curso.rows.filter(r => r.faltaEn);
+    const w       = curso.esPar ? 130 : 100;
 
     html += `<div class="curso-section">
       <div class="curso-header">
@@ -893,10 +1002,7 @@ function renderResultados() {
             <div class="curso-sub">${esc(curso.codigo)}</div>
           </div>
         </div>
-        <div class="curso-actions">
-          <button class="btn-sec" data-act="copiar" data-ci="${ci}" title="Copia la columna Nota Final en el orden del portal, lista para pegar">📋 Copiar notas</button>
-          <button class="btn-exp" data-act="exp-curso" data-ci="${ci}">⬇ Exportar</button>
-        </div>
+        <div class="curso-actions" id="prog-${ci}">${progresoHtml(curso, ci)}</div>
       </div>
       ${faltan.length ? `<div class="curso-alerta">⚠️ ${faltan.length} estudiante${faltan.length > 1 ? 's aparecen' : ' aparece'} en un solo libro (marcado${faltan.length > 1 ? 's' : ''} en la tabla). Para el libro que falta se usó 0%. Revisa si está inscrito con otro nombre en Oxford.</div>` : ''}
       <div class="mini-stats">
@@ -906,14 +1012,14 @@ function renderResultados() {
         <div class="ms"><div class="ms-l">Sin actividad</div><div class="ms-v" style="color:var(--g600)">${sinAct}</div></div>
         <div class="ms"><div class="ms-l">Promedio</div><div class="ms-v" style="color:var(--blue)">${p1(prom)}</div></div>
       </div>
-      <div class="tw"><table>
-        <colgroup><col style="width:44px"><col><col style="width:${curso.esPar ? 130 : 100}px"><col style="width:${curso.esPar ? 130 : 100}px"><col style="width:96px"><col style="width:84px"><col style="width:90px"></colgroup>
+      <div class="tw"><table class="${compacta ? 'compacta' : ''}">
+        <colgroup><col style="width:44px"><col>${compacta ? '' : `<col style="width:${w}px"><col style="width:${w}px"><col style="width:96px"><col style="width:84px">`}<col style="width:${compacta ? 110 : 90}px"><col class="c-chk" style="width:52px"></colgroup>
         <thead><tr>
-          <th>#</th><th>Estudiante <span style="opacity:.6;font-weight:400;text-transform:none">✎ clic para corregir</span></th>
-          ${curso.esPar
+          <th>#</th><th>Estudiante <span style="opacity:.6;font-weight:400;text-transform:none">✎ clic para corregir · ⇄ apellidos</span></th>
+          ${compacta ? '' : (curso.esPar
             ? `<th>% Completion<small>suma de ambos libros</small></th><th>% Score<small>promedio de ambos libros</small></th>`
-            : `<th>% Completion</th><th>% Score</th>`}
-          <th>N. Completion</th><th>N. Score</th><th>Nota Final</th>
+            : `<th>% Completion</th><th>% Score</th>`) + `<th>N. Completion</th><th>N. Score</th>`}
+          <th>Nota Final</th><th class="chk" title="Marca cada nota al ingresarla en el portal">✓</th>
         </tr></thead>
         <tbody id="tb-${ci}">${filasHtml(curso, ci)}</tbody>
       </table></div>
@@ -934,9 +1040,11 @@ const resultsEl = document.getElementById('results');
 resultsEl.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
-  if (b.dataset.act === 'exp-curso') exportarCurso(+b.dataset.ci);
-  if (b.dataset.act === 'copiar')    copiarNotas(+b.dataset.ci);
-  if (b.dataset.act === 'exp-todo')  exportarTodo();
+  const ci = +b.dataset.ci;
+  if (b.dataset.act === 'marcar')    marcar(ci, b.dataset.k);
+  if (b.dataset.act === 'swap')      alternarApellidos(ci, b.dataset.k);
+  if (b.dataset.act === 'reiniciar') reiniciarMarcas(ci);
+  if (b.dataset.act === 'exportar')  exportar();
   if (b.dataset.act === 'imprimir')  window.print();
 });
 resultsEl.addEventListener('change', e => {
@@ -944,9 +1052,10 @@ resultsEl.addEventListener('change', e => {
     prefs.soloBajo = e.target.checked;
     resultsEl.classList.toggle('solo-bajo', prefs.soloBajo);
   }
-  if (e.target.id === 'decimal') {
-    prefs.decimal = e.target.value;
-    lsSet('decimal', prefs.decimal);
+  if (e.target.id === 'compacta') {
+    prefs.compacta = e.target.checked;
+    lsSet('compacta', prefs.compacta ? '1' : '0');
+    renderResultados();
   }
 });
 resultsEl.addEventListener('focusout', e => {
@@ -962,43 +1071,23 @@ resultsEl.addEventListener('keydown', e => {
   }
 });
 
-// ── COPIAR / EXPORTAR ─────────────────────────────────────────────────────────
-// Números según la preferencia de decimales (Excel en configuración chilena usa coma)
-const fmt  = n => prefs.decimal === 'coma' ? n.toFixed(1).replace('.', ',') : n.toFixed(1);
+// ── EXPORTAR (respaldo) ───────────────────────────────────────────────────────
+// Formato para Excel en configuración chilena: coma decimal y ";" como separador
+const fmt  = n => n.toFixed(1).replace('.', ',');
 const fmtP = n => fmt(n) + '%';
-const sepCsv = () => prefs.decimal === 'coma' ? ';' : ',';
-const celda  = v => typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : v;
-
-async function copiarNotas(ci) {
-  const curso = cursos[ci];
-  const texto = curso.rows.map(r => fmt(r.nf)).join('\n');
-  let ok = false;
-  try { await navigator.clipboard.writeText(texto); ok = true; } catch {}
-  if (!ok) {
-    const ta = document.createElement('textarea');
-    ta.value = texto;
-    ta.style.cssText = 'position:fixed;opacity:0';
-    document.body.appendChild(ta);
-    ta.select();
-    try { ok = document.execCommand('copy'); } catch {}
-    ta.remove();
-  }
-  toast(ok
-    ? `${curso.rows.length} notas copiadas (${curso.codigo}), en el orden del portal. Pégalas en la columna de notas.`
-    : 'No se pudo copiar al portapapeles. Usa Exportar.');
-}
+const SEP  = ';';
+const celda = v => typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : v;
 
 function lineasCsv(curso) {
-  const sep = sepCsv();
   const enc = ['#','Estudiante','% Completion','% Score','N. Completion','N. Score','Nota Final'];
   if (curso.esPar) enc.push(`% Completion ${curso.libA}`, `% Completion ${curso.libB}`,
                             `% Score ${curso.libA}`, `% Score ${curso.libB}`, 'Observación');
-  return [enc.map(celda).join(sep),
+  return [enc.map(celda).join(SEP),
     ...curso.rows.map((r, i) => {
       const c = [i + 1, r.nombrePortal, fmtP(r.comp), fmtP(r.score), fmt(r.nc), fmt(r.ns), fmt(r.nf)];
       if (curso.esPar) c.push(fmtP(r.compA), fmtP(r.compB), fmtP(r.scoreA), fmtP(r.scoreB),
                               r.faltaEn ? `No está en ${r.faltaEn} (se usó 0%)` : '');
-      return c.map(celda).join(sep);
+      return c.map(celda).join(SEP);
     })
   ].join('\n');
 }
@@ -1013,12 +1102,11 @@ function descargar(contenido, nombre) {
 
 const hoy = () => new Date().toISOString().slice(0,10);
 
-function exportarCurso(ci) {
-  const curso = cursos[ci];
-  descargar(lineasCsv(curso), `notas_${curso.codigo}_${hoy()}.csv`);
-}
-
-function exportarTodo() {
+function exportar() {
+  if (cursos.length === 1) {
+    descargar(lineasCsv(cursos[0]), `notas_${cursos[0].codigo}_${hoy()}.csv`);
+    return;
+  }
   // El título no puede empezar con "=" o Excel lo intenta evaluar como fórmula
   const partes = cursos.map(c => celda(`Curso: ${c.titulo} — ${c.codigo}`) + '\n' + lineasCsv(c));
   descargar(partes.join('\n\n'), `notas_todos_${hoy()}.csv`);
